@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from GameEngine import PlayGame
+from GameEngine_v001 import PlayGame
 
 GE = PlayGame()
 games = 1
