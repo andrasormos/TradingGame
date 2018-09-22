@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 # .astype(np.uint8)
 # np.set_printoptions(threshold=np.nan, linewidth=300)
+# everything needs to be uint
 
 class PlayGame(object):
     def __init__(self):
@@ -259,6 +260,7 @@ if __name__ == "__main__":
             df.loc[cnt] = test.profit
             cnt += 1
             df.to_csv("GameEngineLog.csv", index=True)
+            
             profit = 0
             test.startGame()
 

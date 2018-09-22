@@ -3,19 +3,21 @@ import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from GameEngine_v001 import PlayGame
 
 desired_width = 320
 pd.set_option('display.width', desired_width)
-
 np.set_printoptions(threshold=np.nan, linewidth=300)
 
+
+from GameEngine_v001 import PlayGame
 
 GE = PlayGame()
 #GE.startGame()
 df_segment = GE.getChartData()
 
-print(df_segment)
+print (np.shape(df_segment))
+
+#print(df_segment)
 print("\n")
 #df_segment.reset_index()
 

@@ -3,7 +3,10 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-results = pd.read_csv("/home/andras/PycharmProjects/keras-RL/GameEngineLog.csv", sep=",", index_col=0)
+
+#results = pd.read_csv("/home/andras/PycharmProjects/keras-RL/GameEngineLog.csv", sep=",", index_col=0)
+results = pd.read_csv("/home/andras/PycharmProjects/reinforcement-learning/3-atari/1-breakout/TraderLog.csv", sep=",", index_col=0)
+
 profit = results['profit']
 
 mean_result = np.mean(profit)

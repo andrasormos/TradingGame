@@ -2,9 +2,11 @@ from random import randint
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+# Game engine v002
 
 # .astype(np.uint8)
 # np.set_printoptions(threshold=np.nan, linewidth=300)
+# everything needs to be uint
 
 class PlayGame(object):
     def __init__(self):
@@ -17,11 +19,12 @@ class PlayGame(object):
         self.gameStep = 0
 
     def startGame(self):
-        self.gameLength = 84  # How long the game should go on
+        self.gameLength = 72  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
         self.timeStepSize = "H"  # Does nothing atm
         self.amountToSpend = 500  # How much to purchase crypto for
-        self.initialBalance = 50000  # Starting Money
+        self.initialBalance = 100000  # Starting Money
+        self.gamePrint = False
 
         self.cashBalance = self.initialBalance
         self.BTC_Balance = 0  # BTC to start with
@@ -63,7 +66,9 @@ class PlayGame(object):
             startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize-1))
             endIndex = startIndex - self.timeFrame
 
-        print("Random Chart:", startIndex, " - ", endIndex)
+        if self.gamePrint == True:
+            print("Random Chart:", startIndex, " - ", endIndex)
+
         startDate = self.df.index[startIndex]
         endDate = self.df.index[endIndex]
 
@@ -86,8 +91,7 @@ class PlayGame(object):
         self.df_segment = self.df_segment.drop(self.df_segment.index[len(self.df_segment)-1])
         self.currentBTCPrice = self.nextRow["Close"][0]
 
-        if action == [1, 0, 0]:
-            print("-BOUGHT BTC-")
+        if action == 1:
             self.actionTaken = 1
             if self.amountToSpend > self.cashBalance:
                 self.cashBalance = 0
@@ -96,8 +100,7 @@ class PlayGame(object):
                 self.cashBalance = self.cashBalance - self.amountToSpend
                 self.BTC_Balance = round((self.BTC_Balance + (self.amountToSpend / self.currentBTCPrice)), 5)
 
-        if action == [0, 1, 0]:
-            print("-SOLD BTC-")
+        if action == 2:
             moneyWorthInBTC = self.amountToSpend / self.currentBTCPrice  # 0.1
 
             if moneyWorthInBTC > self.BTC_Balance:
@@ -107,9 +110,8 @@ class PlayGame(object):
                 self.BTC_Balance = self.BTC_Balance - moneyWorthInBTC
                 self.cashBalance = self.cashBalance + self.amountToSpend
 
-        if action == [0, 0, 1]:
+        if action == 3:
             self.actionTaken = 0
-            print("-SKIP-")
 
         self.cashBalance = round((self.cashBalance), 0)
         self.BTC_Balance = round((self.BTC_Balance), 5)
@@ -118,37 +120,42 @@ class PlayGame(object):
         self.realProfit = self.profit
 
         # REWARDING SYSTEM
-        if self.profit > 0:
-            self.reward = 0.05
-            #print("in profit")
+        if self.profit > 500:
+            self.reward = 5
+            self.done = True
+            print("WON THE GAME!")
 
         if self.profit > 200:
-            self.reward = 1.5
-            #self.resetWallet()
-            #print("winning")
+            self.reward = 1
 
         if self.profit < -200:
             self.reward = -1
-            #self.resetWallet()
-            #print("rekt")
+
+        if self.profit < -500:
+            self.reward = -5
+            self.done = True
+            print("REKT!")
 
         if self.cnt == self.gameLength:
             self.done = True
-            print("Done because we reached gameLength")
+            print("GAME LENGTH REACHED!")
 
         if self.done == True:
             self.gameStep = 0
 
-        print("-",self.gameStep,"-" ,self.endDate, "- PROFIT:", self.profit, "BAL:", self.fullBalance, "BTC", self.BTC_Balance," CASH:", self.cashBalance,"BTC $:",self.currentBTCPrice)
-        print("\n")
-        image = self.getChartImage(self.timeFrame, self.df_segment)
-        return image, self.reward, self.done
+        if self.gamePrint == True:
+            if action == 1:
+                print("-BOUGHT BTC-")
+            if action == 2:
+                print("-SOLD BTC-")
+            if action == 3:
+                print("-SKIP-")
 
-    def resetWallet(self):
-        self.profit = 0
-        self.BTC_Balance = 0
-        self.fullBalance = 50000
-        self.cashBalance = 50000
+            print("-",self.gameStep,"-" ,self.endDate, "- PROFIT:", self.profit, "BAL:", self.fullBalance, "BTC", self.BTC_Balance," CASH:", self.cashBalance,"BTC $:",self.currentBTCPrice)
+            print("\n")
+        image = self.getChartImage(self.timeFrame, self.df_segment)
+
+        return image, self.reward, self.done
 
     def getActionTaken(self):
         return self.actionTaken
@@ -191,7 +198,7 @@ class PlayGame(object):
         previous_pixel = 0
 
         for next_pixel in graph_close:
-            blank_matrix_close[int(next_pixel), x_ind] = 1
+            blank_matrix_close[int(next_pixel), x_ind] = 255
             plus = True
 
             if x_ind == 0:
@@ -206,11 +213,11 @@ class PlayGame(object):
 
                 if difference >=0:
                     next_pixel = (next_pixel + 1).astype(np.uint8)
-                    blank_matrix_close[next_pixel, x_ind] = 2
+                    blank_matrix_close[next_pixel, x_ind] = 170
 
                 if difference < 0:
                     next_pixel = (next_pixel - 1).astype(np.uint8)
-                    blank_matrix_close[next_pixel, x_ind] = 3
+                    blank_matrix_close[next_pixel, x_ind] = 100
 
             x_ind += 1
 
