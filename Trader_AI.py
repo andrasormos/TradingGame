@@ -1,6 +1,9 @@
 TRAIN = True
 TEST = False
 
+# TRAIN = False
+# TEST = True
+
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
 # You can increase the learning rate to 0.00025 in Pong for quicker results
@@ -16,13 +19,12 @@ import tensorflow as tf
 import numpy as np
 import imageio
 from skimage.transform import resize
-
-
+import matplotlib.pyplot as plt
 import pandas as pd
-from GameEngine import PlayGame
+from GameEngine_v006 import PlayGame
 
 GE = PlayGame()
-gameMode = "atari"
+gameMode = "notatari"
 
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -53,9 +55,15 @@ class ProcessFrame:
 
         if gameMode == "atari":
             processedFrame = session.run(self.processed, feed_dict={self.frame: frame})
+            # mat = processedFrame[:, :, 0]
         else:
+            frame = np.reshape([frame], (84, 84, 1))
             processedFrame = np.uint8(frame)
 
+            # mat = processedFrame[:, :, 0]
+            # print("mat shape", np.shape(mat))
+            # plt.imshow(mat, cmap='Greys')
+            # plt.show()
 
         return processedFrame
 
@@ -199,7 +207,7 @@ class ActionGetter:
 
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
-        print("actionToTake", actionToTake)
+        #print("actionToTake", actionToTake)
 
         return actionToTake
 
@@ -394,13 +402,28 @@ class Atari:
         Resets the environment and stacks four frames ontop of each other to
         create the first state
         """
-        frame = self.env.reset()
+        if gameMode == "atari":
+            frame = self.env.reset()
+        else:
+            GE.startGame()
+            frame = GE.getChartData()
+
         self.last_lives = 0
         terminal_life_lost = True  # Set to true so that the agent starts
         # with a 'FIRE' action when evaluating
+
         if evaluation:
-            for _ in range(random.randint(1, self.no_op_steps)):
-                frame, _, _, _ = self.env.step(1)  # Action 'Fire'
+            if gameMode == "atari":
+                for _ in range(random.randint(1, self.no_op_steps)):
+                    frame, _, _, _ = self.env.step(1)  # Action 'Fire'
+            else:
+                for _ in range(random.randint(1, self.no_op_steps)):
+                    GE.startGame()
+                    #frame = GE.getChartData()
+                    frame, _, _ = GE.nextStep(3)
+
+
+
         processed_frame = self.frame_processor.process(sess, frame)  # (★★★)
         self.state = np.repeat(processed_frame, self.agent_history_length, axis=2)
 
@@ -413,13 +436,21 @@ class Atari:
             action: Integer, action the agent performs
         Performs an action and observes the reward and terminal state from the environment
         """
-        new_frame, reward, terminal, info = self.env.step(action)  # (5★)
+        if gameMode == "atari":
+            new_frame, reward, terminal, info = self.env.step(action)  # (5★)
 
-        if info['ale.lives'] < self.last_lives:
-            terminal_life_lost = True
+            if info['ale.lives'] < self.last_lives:
+                terminal_life_lost = True
+            else:
+                terminal_life_lost = terminal
+            self.last_lives = info['ale.lives']
         else:
-            terminal_life_lost = terminal
-        self.last_lives = info['ale.lives']
+            new_frame, reward, terminal = GE.nextStep(action)
+
+            if terminal == True:
+                terminal_life_lost = True
+            else:
+                terminal_life_lost = False
 
         processed_new_frame = self.frame_processor.process(sess, new_frame)  # (6★)
         new_state = np.append(self.state[:, :, 1:], processed_new_frame, axis=2)  # (6★)
@@ -431,8 +462,8 @@ tf.reset_default_graph()
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 200000          # Number of frames the agent sees between evaluations
-EVAL_STEPS = 10000               # Number of frames for one evaluation
+EVAL_FREQUENCY = 50000          # Number of frames the agent sees between evaluations 200 000
+EVAL_STEPS = 500                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
@@ -458,7 +489,7 @@ BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_1'
+RUNID = 'run_5'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -530,15 +561,11 @@ def train():
                 episode_reward_sum = 0
                 for _ in range(MAX_EPISODE_LENGTH):
                     # (4★)
-                    if gameMode == "atari":
-                        action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
 
-                    if gameMode != "atari":
+                    action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
+                    processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
+
                     # (5★)
-                        processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-                    else:
-                        processed_new_frame, reward, terminal, terminal_life_lost, _ = env.step(action)
-
 
                     frame_number += 1
                     epoch_frame += 1
@@ -633,41 +660,89 @@ def train():
 if TRAIN:
     train()
 
-if TEST:
-    gif_path = "GIF/"
-    os.makedirs(gif_path, exist_ok=True)
+if gameMode == "atari":
+    if TEST:
+        gif_path = "GIF/"
+        os.makedirs(gif_path, exist_ok=True)
 
-    if ENV_NAME == 'BreakoutDeterministic-v4':
-        trained_path = "trained/breakout/"
-        save_file = "my_model-15845555.meta"
+        if ENV_NAME == 'BreakoutDeterministic-v4':
+            trained_path = "output/"
+            save_file = "my_model-20038.meta"
 
-    elif ENV_NAME == 'PongDeterministic-v4':
-        trained_path = "trained/pong/"
-        save_file = "my_model-3217770.meta"
+        elif ENV_NAME == 'PongDeterministic-v4':
+            trained_path = "trained/pong/"
+            save_file = "my_model-3217770.meta"
 
-    action_getter = ActionGetter(atari.env.action_space.n,
-                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES)
+        action_getter = ActionGetter(atari.env.action_space.n,
+                                     replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                     max_frames=MAX_FRAMES)
 
-    with tf.Session() as sess:
-        saver = tf.train.import_meta_graph(trained_path + save_file)
-        saver.restore(sess, tf.train.latest_checkpoint(trained_path))
-        frames_for_gif = []
-        terminal_live_lost = atari.reset(sess, evaluation=True)
-        episode_reward_sum = 0
-        while True:
-            atari.env.render()
-            action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
-                                                                           MAIN_DQN,
-                                                                           evaluation=True)
-            processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
-            episode_reward_sum += reward
-            frames_for_gif.append(new_frame)
-            if terminal == True:
-                break
+        with tf.Session() as sess:
+            saver = tf.train.import_meta_graph(trained_path + save_file)
+            saver.restore(sess, tf.train.latest_checkpoint(trained_path))
+            frames_for_gif = []
 
-        atari.env.close()
-        print("The total reward is {}".format(episode_reward_sum))
-        print("Creating gif...")
-        generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
-        print("Gif created, check the folder {}".format(gif_path))
+
+            terminal_live_lost = atari.reset(sess, evaluation=True)
+
+            episode_reward_sum = 0
+
+            while True:
+                atari.env.render()
+                action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+                                                                               MAIN_DQN,
+                                                                               evaluation=True)
+                processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
+                episode_reward_sum += reward
+                frames_for_gif.append(new_frame)
+                if terminal == True:
+                    break
+
+            atari.env.close()
+            print("The total reward is {}".format(episode_reward_sum))
+            print("Creating gif...")
+            generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
+            print("Gif created, check the folder {}".format(gif_path))
+
+else:
+    if TEST:
+        gif_path = "GIF/"
+        os.makedirs(gif_path, exist_ok=True)
+
+        if ENV_NAME == 'BreakoutDeterministic-v4':
+            trained_path = "output/"
+            save_file = "my_model-20038.meta"
+
+        elif ENV_NAME == 'PongDeterministic-v4':
+            trained_path = "trained/pong/"
+            save_file = "my_model-3217770.meta"
+
+        action_getter = ActionGetter(atari.env.action_space.n,
+                                     replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                     max_frames=MAX_FRAMES)
+
+        with tf.Session() as sess:
+            saver = tf.train.import_meta_graph(trained_path + save_file)
+            saver.restore(sess, tf.train.latest_checkpoint(trained_path))
+            frames_for_gif = []
+
+            terminal_live_lost = atari.reset(sess, evaluation=True)
+
+            episode_reward_sum = 0
+
+            while True:
+                #atari.env.render()
+                action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+                                                                               MAIN_DQN,
+                                                                               evaluation=True)
+                processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
+                episode_reward_sum += reward
+                frames_for_gif.append(new_frame)
+                if terminal == True:
+                    break
+
+            atari.env.close()
+            print("The total reward is {}".format(episode_reward_sum))
+            print("Creating gif...")
+            generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
+            print("Gif created, check the folder {}".format(gif_path))
