@@ -11,7 +11,6 @@ import sys
 
 sys.setrecursionlimit(10000)  # 10000 is an example, try with different values
 
-
 # Game engine v002
 
 # .astype(np.uint8)
@@ -24,25 +23,37 @@ class PlayGame(object):
 
         # LOAD DATA
         dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
-        self.df = pd.read_csv("Gdax_BTCUSD_1h_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        #self.df = pd.read_csv("Gdax_BTCUSD_1h_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+
+        self.training_df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
         #self.startGame()
         self.gameStep = 0
 
         self.rewardList = []
         self.rewardSum = 0
 
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_001.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_001.csv"
+        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_009.csv"
+        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_009.csv"
         self.logFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "skipCnt", "guessCnt"])
 
         self.guessedRightCnt = 0
         self.guessedWrongCnt = 0
         self.skipCnt = 0
         self.guessCnt = 0
-        self.rwslogCnt = 0
+        self.eLogCnt = 0
+        self.tLogCnt = 0
 
     def startGame(self, evaluation):
+
         self.evaluation = evaluation
+
+        if self.evaluation == True:
+            self.df = self.eval_df
+            # print("Using eval_df dataset")
+            # print(self.df)
+        else:
+            self.df = self.training_df
 
         self.gameLength = 72  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
@@ -114,13 +125,13 @@ class PlayGame(object):
         return startDateStr, endDateStr, startIndex, endIndex
 
     def nextStep(self, action):
-        print("\n")
+        #print("\n")
         self.gameStep += 1
         self.cnt = self.cnt + 1
         self.reward = 0
         terminal_life_lost = False
 
-        print(self.previousBTCPrice, "-->", self.currentBTCPrice)
+
 
         self.previousBTCPrice = self.currentBTCPrice
         self.prevActionTaken = self.actionTaken
@@ -133,9 +144,10 @@ class PlayGame(object):
         self.df_segment = self.df_segment.drop(self.df_segment.index[len(self.df_segment) - 1])
 
         self.currentBTCPrice = self.nextRow["Close"][0]
+        #print(self.previousBTCPrice, "-->", self.currentBTCPrice)
 
         if action == 1:
-            print("Guess: Increase")
+            #print("Guess: Increase")
             self.actionTaken = 1
             if self.firstPurchase == True:
                 self.firstPurchase = False
@@ -159,7 +171,7 @@ class PlayGame(object):
             self.BTCToTrade = self.BTCToTrade + (self.BTCToTrade * 0.3)
 
         if action == 2:
-            print("Guess: Decrease")
+            #print("Guess: Decrease")
             self.actionTaken = 2
             if self.BTCToTrade <= self.BTC_Balance:
                 self.BTC_Balance = self.BTC_Balance - self.BTCToTrade
@@ -189,62 +201,61 @@ class PlayGame(object):
         BTCPercentChange = -1 * (np.round((100 - (BTCPercentGainLoss * 100)), 2))
 
         if BTCPercentChange >= self.rewardPercent:
-            print("BTC increased more than", (self.rewardPercent), "%")
+            ##print("BTC increased more than", (self.rewardPercent), "%")
             if self.actionTaken == 1:
                 self.reward = 1
                 self.guessedRightCnt += 1
-                print("Guessed Right - reward =", self.reward)
+                ##print("Guessed Right - reward =", self.reward)
 
             if self.actionTaken == 2:
                 self.reward = -1
                 self.guessedWrongCnt += 1
-                print("Guessed Wrong - reward =", self.reward)
+                ##print("Guessed Wrong - reward =", self.reward)
 
             if self.actionTaken == 3:
                 self.reward = 0
                 self.skipCnt += 1
-
-        if BTCPercentChange >= self.rewardPercent * 2:
-            print("BTC increased more than", (self.rewardPercent) * 2, "%")
-            if self.actionTaken == 1:
-                self.reward = 1
-                self.done = True
-
-            if self.actionTaken == 2:
-                self.reward = -1
-                self.done = True
-
-            if self.actionTaken == 3:
-                self.reward = 0
 
         if BTCPercentChange <= self.rewardPercent * -1:
-            print("BTC decreased more than", (self.rewardPercent * -1), "%")
+            ##print("BTC decreased more than", (self.rewardPercent * -1), "%")
             if self.actionTaken == 1:
                 self.reward = -1
                 self.guessedWrongCnt += 1
-                print("Guessed Wrong - reward =", self.reward)
+                ##print("Guessed Wrong - reward =", self.reward)
 
             if self.actionTaken == 2:
                 self.reward = 1
                 self.guessedRightCnt += 1
-                print("Guessed Right - reward =", self.reward)
+                ##print("Guessed Right - reward =", self.reward)
 
-            if self.actionTaken == 3:
+            if self.actionTaken == 0 or self.actionTaken == 3:
                 self.reward = 0
                 self.skipCnt += 1
 
-        if BTCPercentChange <= self.rewardPercent * -2:
-            print("BTC decreased more than", (self.rewardPercent * -2), "%")
+        self.guessCnt += 1
+
+        if BTCPercentChange >= self.rewardPercent * 2:
+            ##print("BTC increased more than", (self.rewardPercent) * 2, "%")
             if self.actionTaken == 1:
-                self.reward = -1
                 self.done = True
 
             if self.actionTaken == 2:
-                self.reward = 1
                 self.done = True
 
-            if self.actionTaken == 3:
-                self.reward = 0
+            if self.actionTaken == 0 or self.actionTaken == 3:
+                self.done = True
+
+        if BTCPercentChange <= self.rewardPercent * -2:
+            ##print("BTC decreased more than", (self.rewardPercent * -2), "%")
+            if self.actionTaken == 1:
+                self.done = True
+
+            if self.actionTaken == 2:
+                self.done = True
+
+            if self.actionTaken == 0 or self.actionTaken == 3:
+                self.done = True
+
 
         outcome = 0
 
@@ -279,25 +290,36 @@ class PlayGame(object):
             self.rewardSum = self.rewardSum + self.reward
             if self.done == True:
                 # REWARD AND PROFIT LOG
-                self.logFile.loc[self.rwslogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
-                self.rwslogCnt += 1
+                self.logFile.loc[self.tLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
+                self.tLogCnt += 1
                 self.logFile.to_csv(self.trainLogName, index=True)
+
+
                 self.rewardSum = 0
                 self.guessedRightCnt = 0
                 self.guessedWrongCnt = 0
                 self.skipCnt = 0
+                self.guessCnt = 0
 
         else:
             self.rewardSum = self.rewardSum + self.reward
             if self.done == True:
                 # REWARD AND PROFIT LOG
-                self.logFile.loc[self.rwslogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
-                self.rwslogCnt += 1
+                self.logFile.loc[self.eLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
+                self.eLogCnt += 1
                 self.logFile.to_csv(self.evalLogName, index=True)
+
+                #print("rewardSum", self.rewardSum)
+                #print("guessedRightCnt", self.guessedRightCnt)
+                #print("guessedWrongCnt", self.guessedWrongCnt)
+                #print("skipCnt", self.skipCnt)
+                #print("guessCnt", self.guessCnt)
+
                 self.rewardSum = 0
                 self.guessedRightCnt = 0
                 self.guessedWrongCnt = 0
                 self.skipCnt = 0
+                self.guessCnt = 0
 
         return image, self.reward, self.done
 
@@ -415,11 +437,11 @@ def HourLater(action):
         plt.imshow(df_segment, cmap='hot')
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
-        buyButt = Button(buyCom, 'BUY', color='red', hovercolor='green')
+        buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
         buyButt.on_clicked(_buy)
 
         sellCom = plt.axes([0.9, 0.1, 0.1, 0.075])
-        sellButt = Button(sellCom, 'SELL', color='red', hovercolor='green')
+        sellButt = Button(sellCom, 'DOWN', color='red', hovercolor='green')
         sellButt.on_clicked(_sell)
 
         skipCom = plt.axes([0.9, 0.0, 0.1, 0.075])
@@ -473,11 +495,11 @@ def HourLater(action):
         plt.imshow(chart, cmap='hot')
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
-        buyButt = Button(buyCom, 'BUY', color='red', hovercolor='green')
+        buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
         buyButt.on_clicked(_buy)
 
         sellCom = plt.axes([0.9, 0.1, 0.1, 0.075])
-        sellButt = Button(sellCom, 'SELL', color='red', hovercolor='green')
+        sellButt = Button(sellCom, 'DOWN', color='red', hovercolor='green')
         sellButt.on_clicked(_sell)
 
         skipCom = plt.axes([0.9, 0.0, 0.1, 0.075])
@@ -544,11 +566,11 @@ def newGame():
     plt.imshow(df_segment, cmap='hot')
 
     buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
-    buyButt = Button(buyCom, 'BUY', color='red', hovercolor='green')
+    buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
     buyButt.on_clicked(_buy)
 
     sellCom = plt.axes([0.9, 0.1, 0.1, 0.075])
-    sellButt = Button(sellCom, 'SELL', color='red', hovercolor='green')
+    sellButt = Button(sellCom, 'DOWN', color='red', hovercolor='green')
     sellButt.on_clicked(_sell)
 
     skipCom = plt.axes([0.9, 0.0, 0.1, 0.075])

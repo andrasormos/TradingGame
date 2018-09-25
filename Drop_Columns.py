@@ -5,7 +5,7 @@ import pandas as pd
 
 #dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
 #df = pd.read_csv("Gdax_BTCUSD_1h.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-df = pd.read_csv("Gdax_BTCUSD_1h.csv", index_col=0)
+df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h.csv", index_col=0)
 
 print(df.head())
 
@@ -18,7 +18,7 @@ df.drop("Volume To", axis=1, inplace=True)
 
 #df = df.resample("D").mean()
 
-df.to_csv("Gdax_BTCUSD_1h_close.csv", index=True)
+df.to_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close.csv", index=True)
 
 print(type(df))
 print(df.head())

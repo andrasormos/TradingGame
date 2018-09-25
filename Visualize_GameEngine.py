@@ -9,10 +9,10 @@ pd.set_option('display.width', desired_width)
 np.set_printoptions(threshold=np.nan, linewidth=300)
 
 
-from GameEngine_v001 import PlayGame
+from GameEngine_v006 import PlayGame
 
 GE = PlayGame()
-#GE.startGame()
+GE.startGame(True)
 df_segment = GE.getChartData()
 
 print (np.shape(df_segment))
