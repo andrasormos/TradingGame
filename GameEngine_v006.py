@@ -17,6 +17,7 @@ sys.setrecursionlimit(10000)  # 10000 is an example, try with different values
 # np.set_printoptions(threshold=np.nan, linewidth=300)
 # everything needs to be uint
 
+
 class PlayGame(object):
     def __init__(self):
         self.gameIsRunning = True
@@ -33,13 +34,16 @@ class PlayGame(object):
         self.rewardList = []
         self.rewardSum = 0
 
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_009.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_009.csv"
-        self.logFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "skipCnt", "guessCnt"])
+        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_012.csv"
+        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_012.csv"
 
+        self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
+        self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
         self.guessedRightCnt = 0
         self.guessedWrongCnt = 0
-        self.skipCnt = 0
+        self.guessUpCnt = 0
+        self.guessDownCnt = 0
+        self.guessSkipCnt = 0
         self.guessCnt = 0
         self.eLogCnt = 0
         self.tLogCnt = 0
@@ -131,8 +135,6 @@ class PlayGame(object):
         self.reward = 0
         terminal_life_lost = False
 
-
-
         self.previousBTCPrice = self.currentBTCPrice
         self.prevActionTaken = self.actionTaken
 
@@ -214,7 +216,7 @@ class PlayGame(object):
 
             if self.actionTaken == 3:
                 self.reward = 0
-                self.skipCnt += 1
+
 
         if BTCPercentChange <= self.rewardPercent * -1:
             ##print("BTC decreased more than", (self.rewardPercent * -1), "%")
@@ -230,7 +232,7 @@ class PlayGame(object):
 
             if self.actionTaken == 0 or self.actionTaken == 3:
                 self.reward = 0
-                self.skipCnt += 1
+
 
         self.guessCnt += 1
 
@@ -259,21 +261,6 @@ class PlayGame(object):
 
         outcome = 0
 
-        # if BTCPercentChange >= 0:
-        #     outcome = 1
-        #     # print("Outcome: Increased by", BTCPercentChange, "%")
-        # else:
-        #     # print("Outcome: Decreased by", BTCPercentChange, "%")
-        #     outcome = 2
-
-        # if self.actionTaken == outcome:
-        #     print("Guessed Right - reward =", self.reward)
-        # else:
-        #     if self.actionTaken == 3:
-        #         print("Skipped reward = ", self.reward)
-        #     else:
-        #         print("Guessed Wrong - reward =", self.reward)
-
         self.previousBTCPrice = self.currentBTCPrice
 
         if self.cnt == self.gameLength:
@@ -286,39 +273,53 @@ class PlayGame(object):
 
         image = self.getChartImage(self.timeFrame, self.df_segment)
 
+        if self.actionTaken == 1:
+            self.guessUpCnt += 1
+
+        if self.actionTaken == 2:
+            self.guessDownCnt +=1
+
+        if self.actionTaken == 3:
+            self.guessSkipCnt +=1
+        
+        
         if self.evaluation == False:
             self.rewardSum = self.rewardSum + self.reward
+            
             if self.done == True:
                 # REWARD AND PROFIT LOG
-                self.logFile.loc[self.tLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
+                self.trainLogFile.loc[self.tLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
                 self.tLogCnt += 1
-                self.logFile.to_csv(self.trainLogName, index=True)
-
+                self.trainLogFile.to_csv(self.trainLogName, index=True)
 
                 self.rewardSum = 0
+                self.guessUpCnt = 0
+                self.guessDownCnt = 0
                 self.guessedRightCnt = 0
                 self.guessedWrongCnt = 0
-                self.skipCnt = 0
+                self.guessSkipCnt = 0
                 self.guessCnt = 0
 
         else:
             self.rewardSum = self.rewardSum + self.reward
             if self.done == True:
                 # REWARD AND PROFIT LOG
-                self.logFile.loc[self.eLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.skipCnt, self.guessCnt
+                self.evalLogFile.loc[self.eLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
                 self.eLogCnt += 1
-                self.logFile.to_csv(self.evalLogName, index=True)
+                self.evalLogFile.to_csv(self.evalLogName, index=True)
 
                 #print("rewardSum", self.rewardSum)
                 #print("guessedRightCnt", self.guessedRightCnt)
                 #print("guessedWrongCnt", self.guessedWrongCnt)
-                #print("skipCnt", self.skipCnt)
+                #print("guessSkipCnt", self.guessSkipCnt)
                 #print("guessCnt", self.guessCnt)
 
                 self.rewardSum = 0
+                self.guessUpCnt = 0
+                self.guessDownCnt = 0
                 self.guessedRightCnt = 0
                 self.guessedWrongCnt = 0
-                self.skipCnt = 0
+                self.guessSkipCnt = 0
                 self.guessCnt = 0
 
         return image, self.reward, self.done

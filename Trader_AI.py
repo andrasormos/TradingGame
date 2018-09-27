@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -477,7 +477,7 @@ MEMORY_SIZE = 1000000            # Number of transitions stored in the replay me
 NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                  # evaluation episode
 UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
-HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
+HIDDEN = 4096                    # Number of filters in the final convolutional layer. The output
                                  # has the shape (1,1,1024) which is split into two streams. Both
                                  # the advantage stream and value stream have the shape
                                  # (1,1,512). This is slightly different from the original
@@ -489,7 +489,7 @@ BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_9'
+RUNID = 'run_12'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -712,7 +712,7 @@ else:
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
                 trained_path = "output/"
-                save_file = "my_model-1624008.meta"
+                save_file = "my_model-1643597.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"
@@ -742,8 +742,8 @@ else:
                     if terminal == True:
                         break
 
-                atari.env.close()
+                #atari.env.close()
                 print("The total reward is {}".format(episode_reward_sum))
-                print("Creating gif...")
+                #print("Creating gif...")
                 #generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
-                print("Gif created, check the folder {}".format(gif_path))
+                #print("Gif created, check the folder {}".format(gif_path))
