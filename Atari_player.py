@@ -1,5 +1,5 @@
-TRAIN = True
-TEST = False
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -408,6 +408,8 @@ class Atari:
         new_state = np.append(self.state[:, :, 1:], processed_new_frame, axis=2)  # (6★)
         self.state = new_state
 
+        print("reward:", reward)
+
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
 tf.reset_default_graph()
@@ -441,7 +443,7 @@ BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_4'
+RUNID = 'run_atari'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -614,8 +616,8 @@ if TEST:
     os.makedirs(gif_path, exist_ok=True)
 
     if ENV_NAME == 'BreakoutDeterministic-v4':
-        trained_path = "/home/andras/PycharmProjects/TradingGame/output/"
-        save_file = "my_model-28101299.meta"
+        trained_path = "/home/andras/PycharmProjects/TradingGame/previous_outputs/output_atari_ai_v002_10th_of_mem/"
+        save_file = "my_model-30111192.meta"
 
     elif ENV_NAME == 'PongDeterministic-v4':
         trained_path = "trained/pong/"

@@ -39,6 +39,8 @@ class PlayGame(object):
 
         self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
         self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
+
+
         self.guessedRightCnt = 0
         self.guessedWrongCnt = 0
         self.guessUpCnt = 0
@@ -133,6 +135,7 @@ class PlayGame(object):
         self.gameStep += 1
         self.cnt = self.cnt + 1
         self.reward = 0
+        self.BTCPercentChange = 0
         terminal_life_lost = False
 
         self.previousBTCPrice = self.currentBTCPrice
@@ -164,7 +167,7 @@ class PlayGame(object):
                     self.BTC_Balance = round((self.BTC_Balance + self.BTCToTrade), 5)
                     #print("BOUGHT", self.BTCToTrade, "BTC for", tradeCost)
                 else:
-                    print("RAN OUT OF MONEY!!!")
+                    #print("RAN OUT OF MONEY!!!")
                     moneyEnoughForThisBTC = self.cashBalance / self.currentBTCPrice
                     self.cashBalance = self.cashBalance - moneyEnoughForThisBTC
                     self.BTC_Balance = round((self.BTC_Balance + moneyEnoughForThisBTC), 5)
@@ -198,67 +201,46 @@ class PlayGame(object):
         self.profit = self.fullBalance - self.initialBalance
 
         #  - REWARDING SYSTEM -
-
         BTCPercentGainLoss = (self.currentBTCPrice / self.previousBTCPrice)
-        BTCPercentChange = -1 * (np.round((100 - (BTCPercentGainLoss * 100)), 2))
+        self.BTCPercentChange = -1 * (np.round((100 - (BTCPercentGainLoss * 100)), 2))
 
-        if BTCPercentChange >= self.rewardPercent:
-            ##print("BTC increased more than", (self.rewardPercent), "%")
+        #print(self.previousBTCPrice, "-->", self.currentBTCPrice)
+        #print("changed by:", self.BTCPercentChange)
+        
+        # WHEN BTC WENT UP
+        if self.currentBTCPrice > self.previousBTCPrice:
             if self.actionTaken == 1:
-                self.reward = 1
+                self.reward = self.BTCPercentChange
                 self.guessedRightCnt += 1
-                ##print("Guessed Right - reward =", self.reward)
-
+                #print("Guessed Right - reward =", self.reward)
+                
             if self.actionTaken == 2:
-                self.reward = -1
+                self.reward = self.BTCPercentChange * -1
                 self.guessedWrongCnt += 1
                 ##print("Guessed Wrong - reward =", self.reward)
 
-            if self.actionTaken == 3:
+            if self.actionTaken == 3 or self.actionTaken == 0:
                 self.reward = 0
 
-
-        if BTCPercentChange <= self.rewardPercent * -1:
-            ##print("BTC decreased more than", (self.rewardPercent * -1), "%")
+        # WHEN BTC DROPPED
+        if self.currentBTCPrice < self.previousBTCPrice:
             if self.actionTaken == 1:
-                self.reward = -1
-                self.guessedWrongCnt += 1
-                ##print("Guessed Wrong - reward =", self.reward)
+                self.reward = self.BTCPercentChange
+                self.guessedRightCnt += 1
+                #print("Guessed Wrong - reward =", self.reward)
 
             if self.actionTaken == 2:
-                self.reward = 1
-                self.guessedRightCnt += 1
-                ##print("Guessed Right - reward =", self.reward)
+                self.reward = self.BTCPercentChange * -1
+                self.guessedWrongCnt += 1
+                #print("Guessed Right - reward =", self.reward)
 
-            if self.actionTaken == 0 or self.actionTaken == 3:
+            if self.actionTaken == 3 or self.actionTaken == 0:
                 self.reward = 0
-
 
         self.guessCnt += 1
 
-        if BTCPercentChange >= self.rewardPercent * 2:
-            ##print("BTC increased more than", (self.rewardPercent) * 2, "%")
-            if self.actionTaken == 1:
-                self.done = True
 
-            if self.actionTaken == 2:
-                self.done = True
-
-            if self.actionTaken == 0 or self.actionTaken == 3:
-                self.done = True
-
-        if BTCPercentChange <= self.rewardPercent * -2:
-            ##print("BTC decreased more than", (self.rewardPercent * -2), "%")
-            if self.actionTaken == 1:
-                self.done = True
-
-            if self.actionTaken == 2:
-                self.done = True
-
-            if self.actionTaken == 0 or self.actionTaken == 3:
-                self.done = True
-
-
+        #print("\n")
         outcome = 0
 
         self.previousBTCPrice = self.currentBTCPrice
@@ -324,6 +306,8 @@ class PlayGame(object):
 
         return image, self.reward, self.done
 
+    def getBTCPercentChange(self):
+        return self.BTCPercentChange
 
     def getActionTaken(self):
         return self.actionTaken
