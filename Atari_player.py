@@ -1,8 +1,8 @@
-TRAIN = False
-TEST = True
+TRAIN = True
+TEST = False
 
-ENV_NAME = 'BreakoutDeterministic-v4'
-#ENV_NAME = 'PongDeterministic-v4'
+#ENV_NAME = 'BreakoutDeterministic-v4'
+ENV_NAME = 'PongDeterministic-v4'
 # You can increase the learning rate to 0.00025 in Pong for quicker results
 
 """
@@ -408,7 +408,7 @@ class Atari:
         new_state = np.append(self.state[:, :, 1:], processed_new_frame, axis=2)  # (6★)
         self.state = new_state
 
-        print("reward:", reward)
+        #print("reward:", reward)
 
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
@@ -431,19 +431,19 @@ MEMORY_SIZE = 1000000           # Number of transitions stored in the replay mem
 NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                  # evaluation episode
 UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
-HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
+HIDDEN = 2048                    # Number of filters in the final convolutional layer. The output
                                  # has the shape (1,1,1024) which is split into two streams. Both
                                  # the advantage stream and value stream have the shape
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001          # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00025          # Set to 0.00025 in Pong for quicker results.  0.00001
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_atari'
+RUNID = 'run_atari_pong'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))

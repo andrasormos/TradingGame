@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
 
-from GameEngine_v007 import PlayGame
+from GameEngine_v008 import PlayGame
 
 GE = PlayGame()
 
@@ -23,6 +23,7 @@ for game in range(games):
     GE.startGame(evaluation=True)
 
     while terminal == False:
+
         #action = actions[np.random.choice(np.arange(0, 4), p=[0.25, 0.25,0.25,0.25])]
         action = actions[np.random.choice(np.arange(0, 2), p=[0.5, 0.5])]
 
@@ -30,6 +31,7 @@ for game in range(games):
         #print("action:", action)
 
     if terminal == True:
+        print("game:", logCnt)
         percentChange = GE.getBTCPercentChange()
         percentChangeLog.loc[logCnt] = percentChange
         logCnt += 1

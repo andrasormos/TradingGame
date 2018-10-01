@@ -20,26 +20,23 @@ sys.setrecursionlimit(10000)  # 10000 is an example, try with different values
 
 class PlayGame(object):
     def __init__(self):
-        self.gameIsRunning = True
-
         # LOAD DATA
         dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
-        #self.df = pd.read_csv("Gdax_BTCUSD_1h_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        dateParse2 = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
 
         self.training_df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        #self.startGame()
+        self.eval_df = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse2, index_col=0)
+
         self.gameStep = 0
 
         self.rewardList = []
         self.rewardSum = 0
 
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_015.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_015.csv"
+        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_016.csv"
+        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_016.csv"
 
         self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
         self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
-
 
         self.guessedRightCnt = 0
         self.guessedWrongCnt = 0
@@ -51,38 +48,44 @@ class PlayGame(object):
         self.tLogCnt = 0
 
     def startGame(self, evaluation):
-
         self.evaluation = evaluation
+
 
         if self.evaluation == True:
             self.df = self.eval_df
-            # print("Using eval_df dataset")
-            # print(self.df)
         else:
             self.df = self.training_df
+
 
         self.gameLength = 72  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
         self.timeStepSize = "H"  # Does nothing atm
         self.amountToSpend = 500  # How much to purchase crypto for
         self.initialBalance = 100000  # Starting Money
-        self.gamePrint = False
+        self.gamePrint = True
 
         self.cashBalance = self.initialBalance
         self.BTC_Balance = 0  # BTC to start with
         self.actionTaken = 0
-        self.prevActionTaken = 0
+
         self.BTCToTrade = 0.01
 
         if self.timeStepSize == "D":
             self.df = self.df.resample("D").mean()
 
         self.dataSize = len(self.df.index)
-        self.treshMul = 70
 
         # GET RANDOM SEGMENT FROM DATA
+
         self.startDate, self.endDate, self.startIndex, self.endIndex = self.randomChart()
-        self.df_segment = self.df.loc[self.startDate: self.endDate]
+
+        if self.evaluation == True:
+            self.df_segment = self.df.loc[self.endDate: self.startDate]
+        else:
+            self.df_segment = self.df.loc[self.startDate: self.endDate]
+
+        # print("Random Chart:", self.startIndex, " - ", self.endIndex)
+        # print("Random Chart:", self.startDate, " - ", self.endDate)
 
         self.currentBTCPrice = 0
         self.previousBTCPrice = 0
@@ -90,13 +93,12 @@ class PlayGame(object):
         self.fullBalance = self.cashBalance
         self.prevFullBalance = self.fullBalance
         self.getInitBTCPrice()
-        self.rekt = False
+
         self.done = False
         self.cnt = 1
         self.reward = 0
         self.profit = 0
 
-        self.rewardPercent = 1
         self.firstPurchase = True
 
     def getInitBTCPrice(self):
@@ -113,9 +115,6 @@ class PlayGame(object):
         if self.timeStepSize == "D":
             startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 1))
             endIndex = startIndex - self.timeFrame
-
-        if self.gamePrint == True:
-            print("Random Chart:", startIndex, " - ", endIndex)
 
         startDate = self.df.index[startIndex]
         endDate = self.df.index[endIndex]
@@ -139,7 +138,6 @@ class PlayGame(object):
         terminal_life_lost = False
 
         self.previousBTCPrice = self.currentBTCPrice
-        self.prevActionTaken = self.actionTaken
 
         self.endIndex = self.endIndex - 1
         self.endDate = self.df.index[self.endIndex]
@@ -253,6 +251,7 @@ class PlayGame(object):
             terminal_life_lost = True
             self.gameStep = 0
 
+
         image = self.getChartImage(self.timeFrame, self.df_segment)
 
         if self.actionTaken == 1:
@@ -333,6 +332,7 @@ class PlayGame(object):
     # ---------------------------------     CHART IMAGE GENERATION      ---------------------------------
 
     def getChartImage(self, timeFrame, df_segment):
+        #print(df_segment)
         def scale_list(x, to_min, to_max):
             def scale_number(unscaled, to_min, to_max, from_min, from_max):
                 return (to_max - to_min) * (unscaled - from_min) / (from_max - from_min) + to_min
@@ -547,6 +547,7 @@ def _skip(event):
 def newGame():
     test.startGame(True)
     df_segment = test.getChartData()
+    #print(df_segment)
     printBalances()
     plt.imshow(df_segment, cmap='hot')
 
