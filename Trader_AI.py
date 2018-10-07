@@ -19,9 +19,7 @@ import tensorflow as tf
 import numpy as np
 import imageio
 from skimage.transform import resize
-import matplotlib.pyplot as plt
-import pandas as pd
-from GameEngine_v006 import PlayGame
+from game_versions.GameEngine_v006 import PlayGame
 
 GE = PlayGame()
 gameMode = "notatari"

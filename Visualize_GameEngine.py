@@ -1,15 +1,12 @@
-import time
-import datetime
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 desired_width = 320
 pd.set_option('display.width', desired_width)
 np.set_printoptions(threshold=np.nan, linewidth=300)
 
 
-from GameEngine_v006 import PlayGame
+from game_versions.GameEngine_v006 import PlayGame
 
 GE = PlayGame()
 GE.startGame(True)
