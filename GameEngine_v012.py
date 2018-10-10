@@ -31,6 +31,10 @@ class PlayGame(object):
         self.training_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
         self.eval_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
+        self.latest_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.latest_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.prediction = False
+
         self.gameStep = 0
 
         self.rewardList = []
@@ -65,7 +69,6 @@ class PlayGame(object):
         else:
             self.df_BTC = self.training_df_BTC
             self.df_ETH = self.training_df_ETH
-
 
         self.gameLength = 168  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months

@@ -21,7 +21,7 @@ import imageio
 from skimage.transform import resize
 import matplotlib.pyplot as plt
 import pandas as pd
-from GameEngine_v011_longer import PlayGame
+from GameEngine_v012 import PlayGame
 
 # action_space
 #
@@ -36,18 +36,18 @@ epsLog = pd.DataFrame(columns=["frame","eps"])
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
 
-    def __init__(self, frame_height=60, frame_width=60):
+    def __init__(self, frame_height=84, frame_width=84):
         """
         Args:
             frame_height: Integer, Height of a frame of an Atari game
             frame_width: Integer, Width of a frame of an Atari game
         """
-        # self.frame_height = frame_height
-        # self.frame_width = frame_width
-        # self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
-        # self.processed = tf.image.rgb_to_grayscale(self.frame)
-        # self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
-        # self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        self.frame_height = frame_height
+        self.frame_width = frame_width
+        self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
+        self.processed = tf.image.rgb_to_grayscale(self.frame)
+        self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
+        self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 
 
@@ -57,14 +57,14 @@ class ProcessFrame:
             session: A Tensorflow session object
             frame: A (210, 160, 3) frame of an Atari game in RGB
         Returns:
-            A processed (60, 60, 1) frame in grayscale
+            A processed (84, 84, 1) frame in grayscale
         """
 
         if gameMode == "atari":
             processedFrame = session.run(self.processed, feed_dict={self.frame: frame})
             # mat = processedFrame[:, :, 0]
         else:
-            frame = np.reshape([frame], (60, 60, 1))
+            frame = np.reshape([frame], (84, 84, 1))
             processedFrame = np.uint8(frame)
 
             # mat = processedFrame[:, :, 0]
@@ -80,7 +80,7 @@ class DQN:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, n_actions, hidden=1024, learning_rate=0.00001,
-                 frame_height=60, frame_width=60, agent_history_length=4):
+                 frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -101,7 +101,7 @@ class DQN:
         self.input = tf.placeholder(shape=[None, self.frame_height, self.frame_width, self.agent_history_length], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = self.input / 255
-        
+        print("input scaled", self.inputscaled)
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
@@ -199,7 +199,7 @@ class ActionGetter:
         Args:
             session: A tensorflow session object
             frame_number: Integer, number of the current frame
-            state: A (60, 60, 4) sequence of frames of an Atari game in grayscale
+            state: A (84, 84, 4) sequence of frames of an Atari game in grayscale
             main_dqn: A DQN object
             evaluation: A boolean saying whether the agent is being evaluated
         Returns:
@@ -230,7 +230,7 @@ class ActionGetter:
 class ReplayMemory:
     """Replay Memory that stores the last size=1,000,000 transitions"""
 
-    def __init__(self, size=1000000, frame_height=60, frame_width=60,
+    def __init__(self, size=1000000, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """
         Args:
@@ -266,7 +266,7 @@ class ReplayMemory:
         Args:
             action: An integer between 0 and env.action_space.n - 1
                 determining the action the agent perfomed
-            frame: A (60, 60, 1) frame of an Atari game in grayscale
+            frame: A (84, 84, 1) frame of an Atari game in grayscale
             reward: A float determining the reward the agend received for performing an action
             terminal: A bool stating whether the episode terminated
         """
@@ -499,13 +499,13 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.000125          # Set to 0.00025 in Pong for quicker results. 0.00001
+LEARNING_RATE = 0.00025          # Set to 0.00025 in Pong for quicker results. 0.00001
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_27_half'
+RUNID = 'run_27_norm125'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -759,12 +759,12 @@ else:
 
                 while True:
                     #atari.env.render()
-                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
-                                                                                   MAIN_DQN,
-                                                                                   evaluation=True)
+                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state, MAIN_DQN, evaluation=True)
                     processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
                     episode_reward_sum += reward
+                    
                     frames_for_gif.append(new_frame)
+                    
                     if terminal == True:
                         break
 

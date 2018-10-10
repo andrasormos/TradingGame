@@ -33,14 +33,14 @@ class PlayGame(object):
 
         self.latest_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
         self.latest_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.prediction = True
+        self.prediction = False
         self.gameStep = 0
 
         self.rewardList = []
         self.rewardSum = 0
 
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_025.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_025.csv"
+        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_026.csv"
+        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_026.csv"
 
         self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
         self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
@@ -105,7 +105,7 @@ class PlayGame(object):
             self.df_segment_ETH = self.df_ETH.loc[self.startDate: self.endDate]
 
         # print("Random Chart:", self.startIndex, " - ", self.endIndex)
-        print("Random Chart:", self.startDate, " - ", self.endDate)
+        #print("Random Chart:", self.startDate, " - ", self.endDate)
 
         self.currentBTCPrice = 0
         self.previousBTCPrice = 0
@@ -180,7 +180,7 @@ class PlayGame(object):
         #print("full bal", self.fullBalance)
 
         if action == 1: #1:
-            print("Guess: Increase")
+            #print("Guess: Increase")
             self.actionTaken = 1
             if self.firstPurchase == True:
                 self.firstPurchase = False
@@ -202,7 +202,7 @@ class PlayGame(object):
                     #print("BOUGHT", moneyEnoughForThisBTC, "BTC for", self.cashBalance)
 
         if action == 2: #2:
-            print("Guess: Decrease")
+            #print("Guess: Decrease")
             self.actionTaken = 2
 
             leftOverBTC = self.BTC_Balance
@@ -212,11 +212,11 @@ class PlayGame(object):
 
 
         if action == 0 or action == 3:
-            print("Skipped")
+            #print("Skipped")
             self.actionTaken = 3
 
         if self.cnt == self.gameLength:
-            print("sold all at end of game")
+            #print("sold all at end of game")
             leftOverBTC = self.BTC_Balance
             self.BTC_Balance = self.BTC_Balance - leftOverBTC
             self.cashBalance = self.cashBalance + (leftOverBTC * self.currentBTCPrice)
@@ -274,7 +274,7 @@ class PlayGame(object):
         if self.cnt == self.gameLength:
             self.done = True
 
-        if self.evaluation == False:
+        if self.prediction == False:
             if self.guessedWrongCnt == 10:
                 self.done = True
 
@@ -291,11 +291,12 @@ class PlayGame(object):
         if self.actionTaken == 2 or self.done == True:
             self.guessDownCnt +=1
 
-            self.profitLogFile.loc[self.profitCnt] = self.previousProfit
-            self.profitCnt += 1
-            self.profitLogFile.to_csv("profit.csv", index=True)
-            #print("profit", self.previousProfit)
-            self.initialBalance = self.fullBalance
+            if self.prediction == True:
+                self.profitLogFile.loc[self.profitCnt] = self.previousProfit
+                self.profitCnt += 1
+                self.profitLogFile.to_csv("profit.csv", index=True)
+                #print("profit", self.previousProfit)
+                self.initialBalance = self.fullBalance
 
         if self.actionTaken == 3:
             self.guessSkipCnt +=1
