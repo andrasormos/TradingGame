@@ -21,7 +21,7 @@ import imageio
 from skimage.transform import resize
 import matplotlib.pyplot as plt
 import pandas as pd
-from GameEngine_v012 import PlayGame
+from GameEngine_v012_TA_v004 import PlayGame
 
 # action_space
 #
@@ -42,12 +42,12 @@ class ProcessFrame:
             frame_height: Integer, Height of a frame of an Atari game
             frame_width: Integer, Width of a frame of an Atari game
         """
-        self.frame_height = frame_height
-        self.frame_width = frame_width
-        self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
-        self.processed = tf.image.rgb_to_grayscale(self.frame)
-        self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
-        self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # self.frame_height = frame_height
+        # self.frame_width = frame_width
+        # self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
+        # self.processed = tf.image.rgb_to_grayscale(self.frame)
+        # self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
+        # self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 
 
@@ -101,12 +101,12 @@ class DQN:
         self.input = tf.placeholder(shape=[None, self.frame_height, self.frame_width, self.agent_history_length], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = self.input / 255
-        print("input scaled", self.inputscaled)
+
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
@@ -478,8 +478,8 @@ tf.reset_default_graph()
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 1000         # Number of frames the agent sees between evaluations 10000
-EVAL_STEPS = 500                 # Number of frames for one evaluation #10000
+EVAL_FREQUENCY = 10000         # Number of frames the agent sees between evaluations 10000
+EVAL_STEPS = 2000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
@@ -505,7 +505,7 @@ BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_27_norm125'
+RUNID = 'run_28_norm125'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -615,16 +615,17 @@ def train():
                                         feed_dict={LOSS_PH: np.mean(loss_list),
                                                    REWARD_PH: np.mean(rewards[-100:])})
 
-                        SUMM_WRITER.add_summary(summ, frame_number)
-                        loss_list = []
-                    # Histogramm summaries for tensorboard
-                    summ_param = sess.run(PARAM_SUMMARIES)
-                    SUMM_WRITER.add_summary(summ_param, frame_number)
+                        # SUMM_WRITER.add_summary(summ, frame_number)
+                        # loss_list = []
+                    # # Histogramm summaries for tensorboard
+                    # summ_param = sess.run(PARAM_SUMMARIES)
+                    # SUMM_WRITER.add_summary(summ_param, frame_number)
 
-                    epsilon = action_getter.getEpsilon()
-                    epsLog.loc[cnt] = frame_number, epsilon
-                    cnt += 1
-                    epsLog.to_csv("epsLog.csv", index=True)
+                    if len(rewards) % 100 == 0:
+                        epsilon = action_getter.getEpsilon()
+                        epsLog.loc[cnt] = frame_number, epsilon
+                        cnt += 1
+                        epsLog.to_csv("epsLog.csv", index=True)
 
 
                     print(len(rewards), frame_number, np.mean(rewards[-100:]))
@@ -672,16 +673,16 @@ def train():
 
             modelcnt += 1
 
-            if modelcnt % 10 == 0:
-                # Save the network parameters
-                saver.save(sess, PATH + '/my_model', global_step=frame_number)
-            frames_for_gif = []
-
-            # Show the evaluation score in tensorboard
-            summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            SUMM_WRITER.add_summary(summ, frame_number)
-            with open('rewardsEval.dat', 'a') as eval_reward_file:
-                print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+            # if modelcnt % 10 == 0:
+            #     # Save the network parameters
+            #     saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            # frames_for_gif = []
+            #
+            # # Show the evaluation score in tensorboard
+            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            # SUMM_WRITER.add_summary(summ, frame_number)
+            # with open('rewardsEval.dat', 'a') as eval_reward_file:
+            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
@@ -759,12 +760,12 @@ else:
 
                 while True:
                     #atari.env.render()
-                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state, MAIN_DQN, evaluation=True)
+                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+                                                                                   MAIN_DQN,
+                                                                                   evaluation=True)
                     processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
                     episode_reward_sum += reward
-                    
                     frames_for_gif.append(new_frame)
-                    
                     if terminal == True:
                         break
 

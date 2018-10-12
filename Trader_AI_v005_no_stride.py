@@ -21,7 +21,7 @@ import imageio
 from skimage.transform import resize
 import matplotlib.pyplot as plt
 import pandas as pd
-from GameEngine_v011_longer import PlayGame
+from GameEngine_v012_TA_v005 import PlayGame
 
 # action_space
 #
@@ -36,7 +36,7 @@ epsLog = pd.DataFrame(columns=["frame","eps"])
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
 
-    def __init__(self, frame_height=60, frame_width=60):
+    def __init__(self, frame_height=84, frame_width=84):
         """
         Args:
             frame_height: Integer, Height of a frame of an Atari game
@@ -57,14 +57,14 @@ class ProcessFrame:
             session: A Tensorflow session object
             frame: A (210, 160, 3) frame of an Atari game in RGB
         Returns:
-            A processed (60, 60, 1) frame in grayscale
+            A processed (84, 84, 1) frame in grayscale
         """
 
         if gameMode == "atari":
             processedFrame = session.run(self.processed, feed_dict={self.frame: frame})
             # mat = processedFrame[:, :, 0]
         else:
-            frame = np.reshape([frame], (60, 60, 1))
+            frame = np.reshape([frame], (84, 84, 1))
             processedFrame = np.uint8(frame)
 
             # mat = processedFrame[:, :, 0]
@@ -80,7 +80,7 @@ class DQN:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, n_actions, hidden=1024, learning_rate=0.00001,
-                 frame_height=60, frame_width=60, agent_history_length=4):
+                 frame_height=84, frame_width=84, agent_history_length=4):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -101,24 +101,24 @@ class DQN:
         self.input = tf.placeholder(shape=[None, self.frame_height, self.frame_width, self.agent_history_length], dtype=tf.float32)
         # Normalizing the input
         self.inputscaled = self.input / 255
-        
+
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
-            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
-            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv3')
         self.conv4 = tf.layers.conv2d(
             inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv4')
 
         # Splitting into value and advantage stream
         self.valuestream, self.advantagestream = tf.split(self.conv4, 2, 3)
@@ -199,7 +199,7 @@ class ActionGetter:
         Args:
             session: A tensorflow session object
             frame_number: Integer, number of the current frame
-            state: A (60, 60, 4) sequence of frames of an Atari game in grayscale
+            state: A (84, 84, 4) sequence of frames of an Atari game in grayscale
             main_dqn: A DQN object
             evaluation: A boolean saying whether the agent is being evaluated
         Returns:
@@ -230,7 +230,7 @@ class ActionGetter:
 class ReplayMemory:
     """Replay Memory that stores the last size=1,000,000 transitions"""
 
-    def __init__(self, size=1000000, frame_height=60, frame_width=60,
+    def __init__(self, size=1000000, frame_height=84, frame_width=84,
                  agent_history_length=4, batch_size=32):
         """
         Args:
@@ -266,7 +266,7 @@ class ReplayMemory:
         Args:
             action: An integer between 0 and env.action_space.n - 1
                 determining the action the agent perfomed
-            frame: A (60, 60, 1) frame of an Atari game in grayscale
+            frame: A (84, 84, 1) frame of an Atari game in grayscale
             reward: A float determining the reward the agend received for performing an action
             terminal: A bool stating whether the episode terminated
         """
@@ -478,8 +478,8 @@ tf.reset_default_graph()
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 1000         # Number of frames the agent sees between evaluations 10000
-EVAL_STEPS = 500                 # Number of frames for one evaluation #10000
+EVAL_FREQUENCY = 10000         # Number of frames the agent sees between evaluations 10000
+EVAL_STEPS = 2000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
@@ -499,13 +499,13 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.000125          # Set to 0.00025 in Pong for quicker results. 0.00001
+LEARNING_RATE = 0.00025          # Set to 0.00025 in Pong for quicker results. 0.00001
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
 PATH = "output/"                 # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_27_half'
+RUNID = 'run_29'
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -615,16 +615,17 @@ def train():
                                         feed_dict={LOSS_PH: np.mean(loss_list),
                                                    REWARD_PH: np.mean(rewards[-100:])})
 
-                        SUMM_WRITER.add_summary(summ, frame_number)
-                        loss_list = []
-                    # Histogramm summaries for tensorboard
-                    summ_param = sess.run(PARAM_SUMMARIES)
-                    SUMM_WRITER.add_summary(summ_param, frame_number)
+                        # SUMM_WRITER.add_summary(summ, frame_number)
+                        # loss_list = []
+                    # # Histogramm summaries for tensorboard
+                    # summ_param = sess.run(PARAM_SUMMARIES)
+                    # SUMM_WRITER.add_summary(summ_param, frame_number)
 
-                    epsilon = action_getter.getEpsilon()
-                    epsLog.loc[cnt] = frame_number, epsilon
-                    cnt += 1
-                    epsLog.to_csv("epsLog.csv", index=True)
+                    if len(rewards) % 100 == 0:
+                        epsilon = action_getter.getEpsilon()
+                        epsLog.loc[cnt] = frame_number, epsilon
+                        cnt += 1
+                        epsLog.to_csv("epsLog.csv", index=True)
 
 
                     print(len(rewards), frame_number, np.mean(rewards[-100:]))
@@ -672,16 +673,16 @@ def train():
 
             modelcnt += 1
 
-            if modelcnt % 10 == 0:
-                # Save the network parameters
-                saver.save(sess, PATH + '/my_model', global_step=frame_number)
-            frames_for_gif = []
-
-            # Show the evaluation score in tensorboard
-            summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            SUMM_WRITER.add_summary(summ, frame_number)
-            with open('rewardsEval.dat', 'a') as eval_reward_file:
-                print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+            # if modelcnt % 10 == 0:
+            #     # Save the network parameters
+            #     saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            # frames_for_gif = []
+            #
+            # # Show the evaluation score in tensorboard
+            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            # SUMM_WRITER.add_summary(summ, frame_number)
+            # with open('rewardsEval.dat', 'a') as eval_reward_file:
+            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
