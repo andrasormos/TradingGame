@@ -29,7 +29,7 @@ percentDiffList = []
 action_space = 3
 
 GE = PlayGame()
-GE.defineLogNr("037")
+GE.defineLogNr("038")
 
 gameMode = "notatari"
 
@@ -162,9 +162,10 @@ class ActionGetter:
         return epsilon
 
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
-                 eps_evaluation=0.0, eps_annealing_frames=1000000,
+                 eps_evaluation=0.0, eps_annealing_frames=5000000,
                  replay_memory_start_size=50000, max_frames=25000000):
         """
+        1 000 000
         Args:
             n_actions: Integer, number of possible actions
             eps_initial: Float, Exploration probability for the first

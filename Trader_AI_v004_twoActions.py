@@ -26,14 +26,14 @@ from GameEngine_v012_Examine import PlayGame
 # action_space
 #
 percentDiffList = []
-action_space = 3
+action_space = 2
 
 GE = PlayGame()
-GE.defineLogNr("037")
+GE.defineLogNr("035")
 
 gameMode = "notatari"
 
-#epsLog = pd.DataFrame(columns=["frame","eps"])
+epsLog = pd.DataFrame(columns=["frame","eps"])
 
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -224,6 +224,8 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
+
+
         # choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
         # QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
         # highestQValue = QValues[0][choice]
@@ -246,6 +248,7 @@ class ActionGetter:
         #     actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+
 
         # percentDiffList.append(percentDiff)
 
@@ -667,15 +670,15 @@ def train():
 
                     if len(rewards) % 100 == 0:
                         epsilon = action_getter.getEpsilon()
-                        # epsLog.loc[cnt] = frame_number, epsilon
-                        # cnt += 1
-                        # epsLog.to_csv("epsLog.csv", index=True)
+                        epsLog.loc[cnt] = frame_number, epsilon
+                        cnt += 1
+                        epsLog.to_csv("epsLog.csv", index=True)
 
 
-                    # print(len(rewards), frame_number, np.mean(rewards[-100:]))
-                    # with open('rewards.dat', 'a') as reward_file:
-                    #     print(len(rewards), frame_number,
-                    #           np.mean(rewards[-100:]), file=reward_file)
+                    print(len(rewards), frame_number, np.mean(rewards[-100:]))
+                    with open('rewards.dat', 'a') as reward_file:
+                        print(len(rewards), frame_number,
+                              np.mean(rewards[-100:]), file=reward_file)
 
             ########################
             ###### Evaluation ######
@@ -709,24 +712,24 @@ def train():
                     eval_rewards.append(episode_reward_sum)
                     gif = False  # Save only the first game of the evaluation as a gif
 
-            # print("Evaluation score:\n", np.mean(eval_rewards))
+            print("Evaluation score:\n", np.mean(eval_rewards))
             # try:
             #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
             # except IndexError:
             #     print("No evaluation game finished")
 
-            # modelcnt += 1
+            modelcnt += 1
 
-            # if modelcnt % 10 == 0:
-            #     # Save the network parameters
-            #     saver.save(sess, PATH + '/my_model', global_step=frame_number)
-            # frames_for_gif = []
-            #
-            # # Show the evaluation score in tensorboard
-            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            # SUMM_WRITER.add_summary(summ, frame_number)
-            # with open('rewardsEval.dat', 'a') as eval_reward_file:
-            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+            if modelcnt % 10 == 0:
+                # Save the network parameters
+                saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            frames_for_gif = []
+
+            # Show the evaluation score in tensorboard
+            summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            SUMM_WRITER.add_summary(summ, frame_number)
+            with open('rewardsEval.dat', 'a') as eval_reward_file:
+                print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
