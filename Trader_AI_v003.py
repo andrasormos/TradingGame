@@ -21,7 +21,7 @@ import imageio
 from skimage.transform import resize
 import matplotlib.pyplot as plt
 import pandas as pd
-from GameEngine_v12_Examine import PlayGame
+from GameEngine_v012_Examine import PlayGame
 
 # action_space
 #
@@ -29,6 +29,8 @@ from GameEngine_v12_Examine import PlayGame
 action_space = 3
 
 GE = PlayGame()
+GE.defineLogNr("033")
+
 gameMode = "notatari"
 
 epsLog = pd.DataFrame(columns=["frame","eps"])
@@ -749,6 +751,7 @@ else:
                                          replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                          max_frames=MAX_FRAMES)
 
+            print("running")
             with tf.Session() as sess:
                 saver = tf.train.import_meta_graph(trained_path + save_file)
                 saver.restore(sess, tf.train.latest_checkpoint(trained_path))

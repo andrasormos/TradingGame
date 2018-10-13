@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
-from random import randint
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import csv
 
-from GameEngine_v010_lastWeek import PlayGame
+from game_versions.GameEngine_v010_lastWeek import PlayGame
 
 GE = PlayGame()
 

@@ -40,8 +40,8 @@ class PlayGame(object):
         self.rewardList = []
         self.rewardSum = 0
 
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_027.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_027.csv"
+        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_032.csv"
+        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_032.csv"
 
         self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
         self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
@@ -238,6 +238,7 @@ class PlayGame(object):
                 self.reward = 0
 
 
+
         # WHEN BTC DROPPED
         if self.currentBTCPrice < self.previousBTCPrice:
             if self.actionTaken == 1:
@@ -253,6 +254,9 @@ class PlayGame(object):
             if self.actionTaken == 3 or self.actionTaken == 0:
                 #print("Guessed Skipped - reward =", self.reward)
                 self.reward = 0
+
+        if self.reward < 0.15 and self.reward > -0.3:
+            self.reward = 0
 
         self.guessCnt += 1
         self.previousBTCPrice = self.currentBTCPrice
