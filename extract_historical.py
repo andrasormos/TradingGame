@@ -29,7 +29,7 @@ def extractBTC(startDate, endDate):
         df_close = close[i][1]
 
         df_BTC.loc[BTCcnt] = df_humanTime, df_close
-        df_BTC.to_csv("/home/andras/PycharmProjects/TradingGame/cryptoExtract/latest_BTC_close.csv", index=False)
+        df_BTC.to_csv("./cryptoExtract/latest_BTC_close.csv", index=False)
 
 def extractETH(startDate, endDate):
     global ETHCnt
@@ -45,12 +45,12 @@ def extractETH(startDate, endDate):
         df_close = close[i][1]
 
         df_ETH.loc[ETHCnt] = df_humanTime, df_close
-        df_ETH.to_csv("/home/andras/PycharmProjects/TradingGame/cryptoExtract/latest_ETH_close.csv", index=False)
+        df_ETH.to_csv("./cryptoExtract/latest_ETH_close.csv", index=False)
 
 
 
 
-endDate = "2018-10-14T12:00:00"
+endDate = "2018-10-14T13:00:00"
 startDate = "2018-10-07T20:00:00"
 extractBTC(startDate, endDate)
 extractETH(startDate, endDate)
