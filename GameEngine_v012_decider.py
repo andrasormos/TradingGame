@@ -24,8 +24,8 @@ class PlayGame(object):
         self.eval_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.prediction = False
-
-
+        self.latest_BTC = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.latest_ETH = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.eLogCnt = 0
         self.tLogCnt = 0
@@ -62,12 +62,16 @@ class PlayGame(object):
         self.aLogCnt = 0
         self.evaluation = evaluation
 
-        if self.evaluation == True:
-            self.df_BTC = self.eval_df_BTC
-            self.df_ETH = self.eval_df_ETH
+        if self.prediction == True:
+            self.df_BTC = self.latest_BTC
+            self.df_ETH = self.latest_ETH
         else:
-            self.df_BTC = self.training_df_BTC
-            self.df_ETH = self.training_df_ETH
+            if self.evaluation == True:
+                self.df_BTC = self.eval_df_BTC
+                self.df_ETH = self.eval_df_ETH
+            else:
+                self.df_BTC = self.training_df_BTC
+                self.df_ETH = self.training_df_ETH
 
         self.gameLength = 168  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
@@ -112,10 +116,17 @@ class PlayGame(object):
 
         self.priceAtTimeOfPurchase = 0
 
-        self.dataSize = len(self.df_BTC.index)
-        self.startDate, self.endDate, self.startIndex, self.endIndex = self.randomChart()
-        self.df_segment_BTC = self.df_BTC.loc[self.endDate: self.startDate]
-        self.df_segment_ETH = self.df_ETH.loc[self.endDate: self.startDate]
+
+
+        if self.prediction == True:
+            self.df_segment_BTC = self.df_BTC[:self.timeFrame]
+            self.df_segment_ETH = self.df_ETH[:self.timeFrame]
+            self.startDate, self.endDate, self.startIndex, self.endIndex = self.getLatestChart()
+        else:
+            self.dataSize = len(self.df_BTC.index)
+            self.startDate, self.endDate, self.startIndex, self.endIndex = self.randomChart()
+            self.df_segment_BTC = self.df_BTC.loc[self.endDate: self.startDate]
+            self.df_segment_ETH = self.df_ETH.loc[self.endDate: self.startDate]
 
         self.currentBTCPrice = 0
         self.previousBTCPrice = 0
@@ -134,6 +145,26 @@ class PlayGame(object):
         endDate = self.df_BTC.index[endIndex]
         nextRow = self.df_BTC.loc[[endDate]]
         self.currentBTCPrice = nextRow["Close"][0]
+
+    def getLatestChart(self):
+        #print(self.df_BTC[:84])
+        startIndex = len(self.df_BTC[:self.timeFrame]) - 1
+        endIndex = 0
+
+        print(startIndex,endIndex)
+        print(self.df_BTC[:self.timeFrame])
+        print("\n")
+
+
+        startDate = self.df_BTC[:self.timeFrame].index[startIndex]
+        endDate = self.df_BTC[:self.timeFrame].index[endIndex]
+
+        print(startDate,"-", endDate)
+        startDateStr = startDate.strftime("%Y-%m-%d %H:%M:%S")
+        endDateStr = endDate.strftime("%Y-%m-%d %H:%M:%S")
+
+        return startDateStr, endDateStr, startIndex, endIndex
+
 
     def randomChart(self):
         if self.timeStepSize == "H":
@@ -156,18 +187,22 @@ class PlayGame(object):
         self.previousProfit = self.profit
         self.previousBTCPrice = self.currentBTCPrice
 
-        self.endIndex = self.endIndex - 1
-        self.endDate = self.df_BTC.index[self.endIndex]
-        
-        self.nextRow_BTC = self.df_BTC.loc[[self.endDate]]
-        self.df_segment_BTC = pd.concat([self.nextRow_BTC, self.df_segment_BTC])
-        self.df_segment_BTC = self.df_segment_BTC.drop(self.df_segment_BTC.index[len(self.df_segment_BTC) - 1])
+        if self.prediction == True:
+            print("no new data")
 
-        self.nextRow_ETH = self.df_ETH.loc[[self.endDate]]
-        self.df_segment_ETH = pd.concat([self.nextRow_ETH, self.df_segment_ETH])
-        self.df_segment_ETH = self.df_segment_ETH.drop(self.df_segment_ETH.index[len(self.df_segment_ETH) - 1])
+        else:
+            self.endIndex = self.endIndex - 1
+            self.endDate = self.df_BTC.index[self.endIndex]
 
-        self.currentBTCPrice = self.nextRow_BTC["Close"][0]
+            self.nextRow_BTC = self.df_BTC.loc[[self.endDate]]
+            self.df_segment_BTC = pd.concat([self.nextRow_BTC, self.df_segment_BTC])
+            self.df_segment_BTC = self.df_segment_BTC.drop(self.df_segment_BTC.index[len(self.df_segment_BTC) - 1])
+
+            self.nextRow_ETH = self.df_ETH.loc[[self.endDate]]
+            self.df_segment_ETH = pd.concat([self.nextRow_ETH, self.df_segment_ETH])
+            self.df_segment_ETH = self.df_segment_ETH.drop(self.df_segment_ETH.index[len(self.df_segment_ETH) - 1])
+
+            self.currentBTCPrice = self.nextRow_BTC["Close"][0]
 
         # --------------------------- APPLY ACTION THAT WAS TAKEN BASED ON PREVIOUS STATE ----------------------------
         if action == 1: #1
@@ -372,9 +407,6 @@ class PlayGame(object):
                 self.aLogCnt += 1
                 self.actionLogFile.loc[self.aLogCnt] = self.previousBTCPrice, bought, sold
                 self.actionLogFile.to_csv(self.actionLogName, index=True)
-            # else:
-            #     self.actionLogFile = pd.DataFrame(columns=["BTCPrice", "bought", "sold"])
-
 
         if self.done == True:
             self.gameStep += 1
@@ -384,10 +416,7 @@ class PlayGame(object):
             self.sumWrongPerc = 0
             self.profit = 0
 
-        #data = np.loadtxt('TS.csv', dtype='str,int', delimiter=',', usecols=(0, 1), unpack=True)
-
-
-
+        # ------------------------------------------  WRITE EVALUATION LOG  ------------------------------------------
         if self.done == True:
             #print(self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt)
             if self.evaluation == True:
@@ -397,12 +426,6 @@ class PlayGame(object):
                 df.loc[self.eLogCnt] = self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
                 df.to_csv(self.evalLogName, mode='a', header=False)
                 self.eLogCnt += 1
-
-
-                # self.evalLogFile.loc[self.eLogCnt] = self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
-                # self.eLogCnt += 1
-                # self.evalLogFile.to_csv(self.evalLogName, index=True)
-
             else:
 
                 df = pd.DataFrame(columns=["sumPercent", "rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
@@ -410,22 +433,6 @@ class PlayGame(object):
                 df.to_csv(self.trainLogName, mode='a', header=False)
                 self.tLogCnt += 1
 
-                # self.trainLogFile.loc[self.tLogCnt] = self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
-                # self.tLogCnt += 1
-                # self.trainLogFile.to_csv(self.trainLogName, index=True)
-
-        # # ------------------------------------------  WRITE EVALUATION LOG  ------------------------------------------
-        # if self.done == True:
-        #     print(self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt)
-        #     if self.evaluation == True:
-        #         self.evalLogFile.loc[self.eLogCnt] = self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
-        #         self.eLogCnt += 1
-        #         self.evalLogFile.to_csv(self.evalLogName, index=True)
-        #
-        #     else:
-        #         self.trainLogFile.loc[self.tLogCnt] = self.sumPercent, self.rewardSum, self.profitSum, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
-        #         self.tLogCnt += 1
-        #         self.trainLogFile.to_csv(self.trainLogName, index=True)
 
 
         # ---------------------------------------------  SAVE IMAGE   ------------------------------------------------

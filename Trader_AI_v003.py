@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -29,7 +29,10 @@ percentDiffList = []
 action_space = 3
 
 GE = PlayGame()
-GE.defineLogNr("037")
+
+logNr = "039"
+
+GE.defineLogNr(logNr)
 
 gameMode = "notatari"
 
@@ -224,31 +227,33 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        # choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
-        # QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
-        # highestQValue = QValues[0][choice]
-        #
-        # predBuy = QValues[0][1]
-        # predSell = QValues[0][2]
-        # predBoth = []
-        # predBoth.append(predBuy)
-        # predBoth.append(predSell)
-        #
-        # diff = np.absolute(predBuy - predSell)
-        #
-        # ceiling = np.amax(predBoth)
-        # floor = np.amin(predBoth)
-        # percentDiff = np.absolute(1 - (ceiling / floor))
-        #
-        # if percentDiff < 0.01:
-        #     actionToTake = 0
-        # else:
-        #     actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
+        QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
+        highestQValue = QValues[0][choice]
 
-        actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        predBuy = QValues[0][1]
+        predSell = QValues[0][2]
+        predBoth = []
+        predBoth.append(predBuy)
+        predBoth.append(predSell)
+
+        diff = np.absolute(predBuy - predSell)
+
+        ceiling = np.amax(predBoth)
+        floor = np.amin(predBoth)
+        percentDiff = np.absolute(1 - (ceiling / floor))
+
+        if percentDiff < 0.02:
+            actionToTake = 0
+        else:
+            actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+
+
+
+        # actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+
 
         # percentDiffList.append(percentDiff)
-
         # if len(percentDiffList) == 2000:
         #     fig = plt.figure()
         #     ax1 = fig.add_subplot(111)
@@ -256,7 +261,6 @@ class ActionGetter:
         #     #ax1.set_ylim([0, 1.2])
         #     #plt.axhline(50, color='black', linewidth=0.5)
         #     plt.show()
-
         # print("Q values: ", QValues, "HighestQ:", choice[0], "iso:", highestQValue)
         # print("predBoth", predBoth)
         # print("percentDiff", percentDiff)
@@ -264,9 +268,7 @@ class ActionGetter:
         # print("floor", floor)
         # print(diff)
         # print("\n")
-
-
-        #print("actionToTake", actionToTake)
+        # print("actionToTake", actionToTake)
 
         return actionToTake
 
@@ -534,7 +536,7 @@ REPLAY_MEMORY_START_SIZE = 50000 # Number of completely random actions,
                                  # before the agent starts learning
 MAX_FRAMES = 30000000            # Total number of frames the agent sees
 MEMORY_SIZE = 1000000            # Number of transitions stored in the replay memory
-NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
+NO_OP_STEPS = 2                # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                  # evaluation episode
 UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
 HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
@@ -543,13 +545,17 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00025          # Set to 0.00025 in Pong for quicker results. 0.00001
+LEARNING_RATE = 0.000125          # Set to 0.00025 in Pong for quicker results. 0.00001
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
-PATH = "output/"                 # Gifs and checkpoints will be saved here
+PATH = "output_" + logNr + "/"                # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_29'
+RUNID = 'run_' + logNr
+
+
+
+
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -715,11 +721,11 @@ def train():
             # except IndexError:
             #     print("No evaluation game finished")
 
-            # modelcnt += 1
+            modelcnt += 1
 
-            # if modelcnt % 10 == 0:
-            #     # Save the network parameters
-            #     saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            if modelcnt % 10 == 0:
+                # Save the network parameters
+                saver.save(sess, PATH + '/my_model', global_step=frame_number)
             # frames_for_gif = []
             #
             # # Show the evaluation score in tensorboard
