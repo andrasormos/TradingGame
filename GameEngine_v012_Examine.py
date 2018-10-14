@@ -40,9 +40,9 @@ class PlayGame(object):
 
     def defineLogNr(self, logNr):
         self.logNr = logNr
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_" + logNr + ".csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_" + logNr + ".csv"
-        self.actionLogName = "/home/andras/PycharmProjects/TradingGame/logs/actionLog_" + logNr + ".csv"
+        self.trainLogName = "./logs/trainLog_" + logNr + ".csv"
+        self.evalLogName = "./logs/evalLog_" + logNr + ".csv"
+        self.actionLogName = "./logs/actionLog_" + logNr + ".csv"
 
         if os.path.exists(self.trainLogName) == True:
             os.remove(self.trainLogName)
