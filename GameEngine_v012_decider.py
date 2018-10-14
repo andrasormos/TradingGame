@@ -17,15 +17,15 @@ class PlayGame(object):
         # LOAD DATA
         dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
 
-        self.training_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_BTC = pd.read_csv("*/new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_BTC = pd.read_csv("*/new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
-        self.training_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_ETH = pd.read_csv("*/new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_ETH = pd.read_csv("*/new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.prediction = False
-        self.latest_BTC = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.latest_ETH = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.latest_BTC = pd.read_csv("*/cryptoExtract/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.latest_ETH = pd.read_csv("*/cryptoExtract/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.eLogCnt = 0
         self.tLogCnt = 0

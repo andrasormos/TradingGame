@@ -36,7 +36,7 @@ GE.defineLogNr(logNr)
 
 gameMode = "notatari"
 
-#epsLog = pd.DataFrame(columns=["frame","eps"])
+epsLog = pd.DataFrame(columns=["frame","eps"])
 
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -227,30 +227,30 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
-        QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
-        highestQValue = QValues[0][choice]
+        # choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
+        # QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
+        # highestQValue = QValues[0][choice]
+        #
+        # predBuy = QValues[0][1]
+        # predSell = QValues[0][2]
+        # predBoth = []
+        # predBoth.append(predBuy)
+        # predBoth.append(predSell)
+        #
+        # diff = np.absolute(predBuy - predSell)
+        #
+        # ceiling = np.amax(predBoth)
+        # floor = np.amin(predBoth)
+        # percentDiff = np.absolute(1 - (ceiling / floor))
+        #
+        # if percentDiff < 0.02:
+        #     actionToTake = 0
+        # else:
+        #     actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
-        predBuy = QValues[0][1]
-        predSell = QValues[0][2]
-        predBoth = []
-        predBoth.append(predBuy)
-        predBoth.append(predSell)
-
-        diff = np.absolute(predBuy - predSell)
-
-        ceiling = np.amax(predBoth)
-        floor = np.amin(predBoth)
-        percentDiff = np.absolute(1 - (ceiling / floor))
-
-        if percentDiff < 0.02:
-            actionToTake = 0
-        else:
-            actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
 
-
-        # actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
 
         # percentDiffList.append(percentDiff)
@@ -602,6 +602,7 @@ PARAM_SUMMARIES = tf.summary.merge(ALL_PARAM_SUMMARIES)
 
 
 def train():
+    print("training started")
     """Contains the training and evaluation loops"""
     my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
@@ -631,7 +632,7 @@ def train():
 
                     action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
                     processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-
+                    #print(action)
                     # (5★)
 
                     frame_number += 1
@@ -678,7 +679,7 @@ def train():
                         # epsLog.to_csv("epsLog.csv", index=True)
 
 
-                    # print(len(rewards), frame_number, np.mean(rewards[-100:]))
+                    print(len(rewards), frame_number, np.mean(rewards[-100:]))
                     # with open('rewards.dat', 'a') as reward_file:
                     #     print(len(rewards), frame_number,
                     #           np.mean(rewards[-100:]), file=reward_file)

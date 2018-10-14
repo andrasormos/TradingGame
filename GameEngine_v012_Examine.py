@@ -17,11 +17,11 @@ class PlayGame(object):
         # LOAD DATA
         dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
 
-        self.training_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_BTC = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_BTC = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
-        self.training_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.prediction = False
 
@@ -262,6 +262,7 @@ class PlayGame(object):
 
         self.previousBTCPrice = self.currentBTCPrice
 
+        self.reward = self.reward - 0.003
         #print("reward", self.reward)
         # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
         # if self.BTCPercentChange < 0.15:
