@@ -14,7 +14,7 @@ If you have questions or suggestions, write me a mail fabiograetzatgooglemaildot
 """
 import os
 import random
-import gym
+#import gym
 import tensorflow as tf
 import numpy as np
 import imageio
@@ -444,7 +444,7 @@ class Atari:
     """Wrapper for the environment provided by gym"""
 
     def __init__(self, envName, no_op_steps=10, agent_history_length=4):
-        self.env = gym.make(envName)
+        #self.env = gym.make(envName)
         self.frame_processor = ProcessFrame()
         self.state = None
         self.last_lives = 0
@@ -594,8 +594,7 @@ def setupVariables():
 
     atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-    print("The environment has the following {} actions: {}".format(action_space,
-                                                                    atari.env.unwrapped.get_action_meanings()))
+    #print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
 
     # main DQN and target DQN networks:
     with tf.variable_scope('mainDQN'):
@@ -837,19 +836,11 @@ class Predictor(object):
 
 
 
-# if __name__ == "__main__":
-#
-#     percentDiffList = []
-#     action_space = 3
-#     GE = PlayGame()
-#     logNr = "040"
-#     GE.defineLogNr(logNr)
-#     gameMode = "notatari"
-#
-#     print("bobs and vagene")
-#
-#     setupVariables()
-#     predictNextHour()
+if __name__ == "__main__":
+    ChrisMarshall = Predictor()
+    action = ChrisMarshall.predictNextHourNow()
+
+    print(action)
 
 
 
