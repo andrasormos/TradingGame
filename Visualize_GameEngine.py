@@ -6,7 +6,7 @@ pd.set_option('display.width', desired_width)
 np.set_printoptions(threshold=np.nan, linewidth=300)
 
 
-from game_versions.GameEngine_v006 import PlayGame
+from game_engines.game_versions.GameEngine_v006 import PlayGame
 
 GE = PlayGame()
 GE.startGame(True)

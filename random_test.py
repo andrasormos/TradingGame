@@ -1,8 +1,7 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
-from game_versions.GameEngine_v010_lastWeek import PlayGame
+from game_engines.game_versions.GameEngine_v010_lastWeek import PlayGame
 
 GE = PlayGame()
 

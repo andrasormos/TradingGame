@@ -6,47 +6,37 @@ from matplotlib.pyplot import plot, draw, show
 import matplotlib.animation as animation
 import matplotlib.image as mpimg
 from matplotlib.widgets import Button, TextBox
-
+import os.path
 import sys
+
 
 sys.setrecursionlimit(10000)  # 10000 is an example, try with different values
 
-# Game engine v002
-
-# .astype(np.uint8)
-# np.set_printoptions(threshold=np.nan, linewidth=300)
-# everything needs to be uint
-
-# HAS ETH
-
-
 class PlayGame(object):
     def __init__(self):
-        # LOAD DATA
-        dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
-
-        self.training_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        
-        self.training_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-
-        self.latest_df_BTC = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_BTC_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.latest_df_ETH = pd.read_csv("/home/andras/PycharmProjects/TradingGame/crypto/latest_ETH_close.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        # Settings
         self.prediction = False
-        self.gameStep = 0
+        self.actionLogOn = False
+
+        dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
+        self.training_df_BTC = pd.read_csv("./crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_BTC = pd.read_csv("./crypto//Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+
+        self.training_df_ETH = pd.read_csv("./crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_ETH = pd.read_csv("./crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+
+        # Initalise variables
+        self.logNr = ""
+        self.df_trainLog = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
+        self.df_evalLog = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
+        self.df_actionLog = pd.DataFrame(columns=["BTCPrice", "bought", "sold"])
+
+        self.eLogCnt = 0
+        self.tLogCnt = 0
+        self.gamesPlayedCnt = 0
 
         self.rewardList = []
         self.rewardSum = 0
-
-        self.trainLogName = "/home/andras/PycharmProjects/TradingGame/logs/trainLog_026.csv"
-        self.evalLogName = "/home/andras/PycharmProjects/TradingGame/logs/evalLog_026.csv"
-
-        self.trainLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
-        self.evalLogFile = pd.DataFrame(columns=["rewardSum", "profit", "guessedRightCnt", "guessedWrongCnt", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt"])
-
-        self.profitLogFile = pd.DataFrame(columns=["profit"])
-        self.profitCnt = 0
 
         self.guessedRightCnt = 0
         self.guessedWrongCnt = 0
@@ -58,22 +48,27 @@ class PlayGame(object):
         self.tLogCnt = 0
         self.badGuess = 0
 
+    def defineLogNr(self, logNr):
+        self.logNr = logNr
+        self.trainLogPathName = "./logs/trainLog_" + logNr + ".csv"
+        self.evalLogPathName = "./logs/evalLog_" + logNr + ".csv"
+        self.actionLogPathName = "./logs/actionLog_" + logNr + ".csv"
+        if os.path.exists(self.trainLogPathName) == True:
+            os.remove(self.trainLogPathName)
+
+        if os.path.exists(self.evalLogPathName) == True:
+            os.remove(self.evalLogPathName)
+
+        if os.path.exists(self.actionLogPathName) == True:
+            os.remove(self.actionLogPathName)
+        self.df_trainLog.to_csv(self.trainLogPathName, mode='a', header=True)
+        self.df_evalLog.to_csv(self.evalLogPathName, mode='a', header=True)
+        self.df_actionLog.to_csv(self.actionLogPathName, mode='a', header=True)
+
     def startGame(self, evaluation):
         self.evaluation = evaluation
-
-        if self.prediction == True:
-                self.df_BTC = self.latest_df_BTC
-                self.df_ETH = self.latest_df_ETH
-        else:
-            if self.evaluation == True:
-                self.df_BTC = self.eval_df_BTC
-                self.df_ETH = self.eval_df_ETH
-            else:
-                self.df_BTC = self.training_df_BTC
-                self.df_ETH = self.training_df_ETH
-
-
-        self.gameLength = 400  # How long the game should go on
+        # Settings
+        self.gameLength = 72  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
         self.timeStepSize = "H"  # Does nothing atm
         self.amountToSpend = 500  # How much to purchase crypto for
@@ -82,34 +77,29 @@ class PlayGame(object):
         self.cashBalance = self.initialBalance
         self.BTC_Balance = 0  # BTC to start with
         self.actionTaken = 0
+        self.BTCToTrade = 0.01
 
-        self.BTCToTrade = 1
-
-        if self.timeStepSize == "D":
-            self.df_BTC = self.df_BTC.resample("D").mean()
+        if evaluation == True:
+            self.df_BTC = self.eval_df_BTC
+            self.df_ETH = self.eval_df_ETH
+        else:
+            self.df_BTC = self.training_df_BTC
+            self.df_ETH = self.training_df_ETH
 
         self.dataSize = len(self.df_BTC.index)
-
-        # GET RANDOM SEGMENT FROM DATA
-
         self.startDate, self.endDate, self.startIndex, self.endIndex = self.randomChart()
-        # print("startDate",self.startDate, " startIndex", self.startIndex)
-        # print("endDate", self.endDate, " endIndex", self.endIndex)
 
         if self.evaluation == True:
             self.df_segment_BTC = self.df_BTC.loc[self.endDate: self.startDate]
             self.df_segment_ETH = self.df_ETH.loc[self.endDate: self.startDate]
-            
         else:
             self.df_segment_BTC = self.df_BTC.loc[self.startDate: self.endDate]
             self.df_segment_ETH = self.df_ETH.loc[self.startDate: self.endDate]
 
-        # print("Random Chart:", self.startIndex, " - ", self.endIndex)
-        #print("Random Chart:", self.startDate, " - ", self.endDate)
+        self.hoursPlayedCnt = 0
 
         self.currentBTCPrice = 0
         self.previousBTCPrice = 0
-
         self.fullBalance = self.cashBalance
         self.prevFullBalance = self.fullBalance
         self.getInitBTCPrice()
@@ -118,7 +108,6 @@ class PlayGame(object):
         self.cnt = 1
         self.reward = 0
         self.profit = 0
-        self.previousProfit = 0
 
         self.firstPurchase = True
 
@@ -129,14 +118,13 @@ class PlayGame(object):
         self.currentBTCPrice = nextRow["Close"][0]
 
     def randomChart(self):
-
-        if self.prediction == True:
-            startIndex = self.timeFrame + self.gameLength
+        if self.timeStepSize == "H":
+            startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 1))
             endIndex = startIndex - self.timeFrame + 1
-        else:
-            if self.timeStepSize == "H":
-                startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 1))
-                endIndex = startIndex - self.timeFrame + 1
+
+        if self.timeStepSize == "D":
+            startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 1))
+            endIndex = startIndex - self.timeFrame
 
         startDate = self.df_BTC.index[startIndex]
         endDate = self.df_BTC.index[endIndex]
@@ -153,18 +141,16 @@ class PlayGame(object):
 
     def nextStep(self, action):
         #print("\n")
-        self.gameStep += 1
+        self.gamesPlayedCnt += 1
         self.cnt = self.cnt + 1
         self.reward = 0
         self.BTCPercentChange = 0
         terminal_life_lost = False
 
-        self.previousProfit = self.profit
         self.previousBTCPrice = self.currentBTCPrice
 
         self.endIndex = self.endIndex - 1
         self.endDate = self.df_BTC.index[self.endIndex]
-        #print("currentDate", self.endDate)
         
         self.nextRow_BTC = self.df_BTC.loc[[self.endDate]]
         self.df_segment_BTC = pd.concat([self.nextRow_BTC, self.df_segment_BTC])
@@ -176,8 +162,6 @@ class PlayGame(object):
 
         self.currentBTCPrice = self.nextRow_BTC["Close"][0]
         #print(self.previousBTCPrice, "-->", self.currentBTCPrice)
-        #print("profit",self.profit)
-        #print("full bal", self.fullBalance)
 
         if action == 1: #1:
             #print("Guess: Increase")
@@ -201,26 +185,27 @@ class PlayGame(object):
                     self.BTC_Balance = round((self.BTC_Balance + moneyEnoughForThisBTC), 5)
                     #print("BOUGHT", moneyEnoughForThisBTC, "BTC for", self.cashBalance)
 
+            self.BTCToTrade = self.BTCToTrade + (self.BTCToTrade * 0.3)
+
         if action == 2: #2:
             #print("Guess: Decrease")
             self.actionTaken = 2
+            if self.BTCToTrade <= self.BTC_Balance:
+                self.BTC_Balance = self.BTC_Balance - self.BTCToTrade
+                self.cashBalance = self.cashBalance + (self.BTCToTrade * self.currentBTCPrice)
+                #print("SOLD", self.BTCToTrade, "BTC for", (self.BTCToTrade * self.currentBTCPrice))
 
-            leftOverBTC = self.BTC_Balance
-            self.BTC_Balance = self.BTC_Balance - leftOverBTC
-            self.cashBalance = self.cashBalance + (leftOverBTC * self.currentBTCPrice)
-            #print("SOLD", leftOverBTC, "BTC for", (leftOverBTC * self.currentBTCPrice))
+            else:
+                leftOverBTC = self.BTC_Balance * self.currentBTCPrice
+                self.BTC_Balance = self.BTC_Balance - leftOverBTC
+                self.cashBalance = self.cashBalance + (leftOverBTC * self.currentBTCPrice)
+                #print("SOLD", leftOverBTC, "BTC for", (leftOverBTC * self.currentBTCPrice))
 
+            self.BTCToTrade = self.BTCToTrade - (self.BTCToTrade * 0.3)
 
         if action == 0 or action == 3:
-            #print("Skipped")
+            ####print("Skipped")
             self.actionTaken = 3
-
-        if self.cnt == self.gameLength:
-            #print("sold all at end of game")
-            leftOverBTC = self.BTC_Balance
-            self.BTC_Balance = self.BTC_Balance - leftOverBTC
-            self.cashBalance = self.cashBalance + (leftOverBTC * self.currentBTCPrice)
-
 
         self.cashBalance = round((self.cashBalance), 0)
         self.BTC_Balance = round((self.BTC_Balance), 5)
@@ -268,48 +253,41 @@ class PlayGame(object):
                 self.reward = 0
 
         self.guessCnt += 1
+
+        outcome = 0
         self.previousBTCPrice = self.currentBTCPrice
+
 
 
         if self.cnt == self.gameLength:
             self.done = True
 
-        if self.prediction == False:
-            if self.guessedWrongCnt == 10:
-                self.done = True
+        if self.guessedWrongCnt == 10:
+            self.done = True
 
         if self.done == True:
             terminal_life_lost = True
-            self.gameStep = 0
-            self.profit = 0
+            self.gamesPlayedCnt = 0
 
         image = self.getChartImage(self.timeFrame)
 
         if self.actionTaken == 1:
             self.guessUpCnt += 1
 
-        if self.actionTaken == 2 or self.done == True:
+        if self.actionTaken == 2:
             self.guessDownCnt +=1
-
-            if self.prediction == True:
-                self.profitLogFile.loc[self.profitCnt] = self.previousProfit
-                self.profitCnt += 1
-                self.profitLogFile.to_csv("profit.csv", index=True)
-                #print("profit", self.previousProfit)
-                self.initialBalance = self.fullBalance
 
         if self.actionTaken == 3:
             self.guessSkipCnt +=1
 
-
-        # WRITE EVALUATION LOG
         if self.evaluation == False:
             self.rewardSum = self.rewardSum + self.reward
             
             if self.done == True:
-                self.trainLogFile.loc[self.tLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
+                # REWARD AND PROFIT LOG
+                self.df_trainLog.loc[self.tLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
                 self.tLogCnt += 1
-                self.trainLogFile.to_csv(self.trainLogName, index=True)
+                self.df_trainLog.to_csv(self.trainLogPathName, index=True)
 
                 self.rewardSum = 0
                 self.guessUpCnt = 0
@@ -321,9 +299,10 @@ class PlayGame(object):
         else:
             self.rewardSum = self.rewardSum + self.reward
             if self.done == True:
-                self.evalLogFile.loc[self.eLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
+                # REWARD AND PROFIT LOG
+                self.df_evalLog.loc[self.eLogCnt] = self.rewardSum, self.profit, self.guessedRightCnt, self.guessedWrongCnt, self.guessUpCnt, self.guessDownCnt, self.guessSkipCnt, self.guessCnt
                 self.eLogCnt += 1
-                self.evalLogFile.to_csv(self.evalLogName, index=True)
+                self.df_evalLog.to_csv(self.evalLogPathName, index=True)
 
                 self.rewardSum = 0
                 self.guessUpCnt = 0
@@ -499,7 +478,7 @@ def HourLater(action):
 
     else:
         chart, r_t, terminal = test.nextStep(action)
-        #printBalances()
+        # printBalances()
         plt.imshow(chart, cmap='hot')
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
@@ -571,7 +550,7 @@ def newGame():
     test.startGame(True)
     df_segment_BTC = test.getChartData()
     #print(df_segment_BTC)
-    #printBalances()
+    printBalances()
     plt.imshow(df_segment_BTC, cmap='hot')
 
     buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])

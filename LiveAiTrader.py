@@ -1,13 +1,11 @@
 import gdax
 import numpy as np
-import dateutil.parser
 import datetime
 #from datetime import datetime
-import matplotlib.pyplot as plt
 import pandas as pd
 import schedule
 import time
-from Trader_AI_v003_decider import Predictor
+from ai.Trader_AI_v003_decider import Predictor
 
 
 client = gdax.PublicClient()

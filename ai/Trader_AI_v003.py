@@ -19,10 +19,24 @@ import tensorflow as tf
 import numpy as np
 import imageio
 from skimage.transform import resize
-from game_versions.GameEngine_v006 import PlayGame
+import pandas as pd
+#from game_versions.GameEngine_v009 import PlayGame
+from game_engines.GameEngine_v014_from_v9 import PlayGame
+
+# action_space
+#
+percentDiffList = []
+action_space = 3
 
 GE = PlayGame()
+
+logNr = "023G"
+
+GE.defineLogNr(logNr)
+
 gameMode = "notatari"
+
+epsLog = pd.DataFrame(columns=["frame","eps"])
 
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -33,12 +47,12 @@ class ProcessFrame:
             frame_height: Integer, Height of a frame of an Atari game
             frame_width: Integer, Width of a frame of an Atari game
         """
-        self.frame_height = frame_height
-        self.frame_width = frame_width
-        self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
-        self.processed = tf.image.rgb_to_grayscale(self.frame)
-        self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
-        self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # self.frame_height = frame_height
+        # self.frame_width = frame_width
+        # self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
+        # self.processed = tf.image.rgb_to_grayscale(self.frame)
+        # self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
+        # self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 
 
@@ -125,6 +139,7 @@ class DQN:
         # Combining value and advantage into Q-values as described above
         self.q_values = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
         self.best_action = tf.argmax(self.q_values, 1)
+        #print(" IM HEREEEEE", self.best_action)
 
         # The next lines perform the parameter update. This will be explained in detail later.
 
@@ -145,6 +160,9 @@ class DQN:
 
 class ActionGetter:
     """Determines an action according to an epsilon greedy strategy with annealing epsilon"""
+    def getEpsilon(self):
+        epsilon = self.currentEpsilon
+        return epsilon
 
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
@@ -164,6 +182,8 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
+        self.currentEpsilon = 0
+
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
@@ -181,6 +201,7 @@ class ActionGetter:
         self.intercept_2 = self.eps_final_frame - self.slope_2 * self.max_frames
 
     def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
+        global percentDiffList
         """
         Args:
             session: A tensorflow session object
@@ -195,17 +216,59 @@ class ActionGetter:
             eps = self.eps_evaluation
         elif frame_number < self.replay_memory_start_size:
             eps = self.eps_initial
+            self.currentEpsilon = eps
         elif frame_number >= self.replay_memory_start_size and frame_number < self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope * frame_number + self.intercept
+            self.currentEpsilon = eps
         elif frame_number >= self.replay_memory_start_size + self.eps_annealing_frames:
             eps = self.slope_2 * frame_number + self.intercept_2
+            self.currentEpsilon = eps
 
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
+        # choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
+        # QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
+        # highestQValue = QValues[0][choice]
+        #
+        # predBuy = QValues[0][1]
+        # predSell = QValues[0][2]
+        # predBoth = []
+        # predBoth.append(predBuy)
+        # predBoth.append(predSell)
+        #
+        # diff = np.absolute(predBuy - predSell)
+        #
+        # ceiling = np.amax(predBoth)
+        # floor = np.amin(predBoth)
+        # percentDiff = np.absolute(1 - (ceiling / floor))
+        #
+        # if percentDiff < 0.02:
+        #     actionToTake = 0
+        # else:
+        #     actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+
+
+
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
-        #print("actionToTake", actionToTake)
+
+        # percentDiffList.append(percentDiff)
+        # if len(percentDiffList) == 2000:
+        #     fig = plt.figure()
+        #     ax1 = fig.add_subplot(111)
+        #     ax1.plot(percentDiffList, ".", color='g', markersize=1)
+        #     #ax1.set_ylim([0, 1.2])
+        #     #plt.axhline(50, color='black', linewidth=0.5)
+        #     plt.show()
+        # print("Q values: ", QValues, "HighestQ:", choice[0], "iso:", highestQValue)
+        # print("predBoth", predBoth)
+        # print("percentDiff", percentDiff)
+        # print("ceiling", ceiling)
+        # print("floor", floor)
+        # print(diff)
+        # print("\n")
+        # print("actionToTake", actionToTake)
 
         return actionToTake
 
@@ -450,6 +513,7 @@ class Atari:
             else:
                 terminal_life_lost = False
 
+        #print("action:", action)#
         processed_new_frame = self.frame_processor.process(sess, new_frame)  # (6★)
         new_state = np.append(self.state[:, :, 1:], processed_new_frame, axis=2)  # (6★)
         self.state = new_state
@@ -460,8 +524,8 @@ tf.reset_default_graph()
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 10000          # Number of frames the agent sees between evaluations 200 000
-EVAL_STEPS = 500                 # Number of frames for one evaluation #10000
+EVAL_FREQUENCY = 5000         # Number of frames the agent sees between evaluations 10000
+EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
@@ -472,36 +536,37 @@ REPLAY_MEMORY_START_SIZE = 50000 # Number of completely random actions,
                                  # before the agent starts learning
 MAX_FRAMES = 30000000            # Total number of frames the agent sees
 MEMORY_SIZE = 1000000            # Number of transitions stored in the replay memory
-NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
+NO_OP_STEPS = 4                # Number of 'NOOP' or 'FIRE' actions at the beginning of an
                                  # evaluation episode
 UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
-HIDDEN = 4096                    # Number of filters in the final convolutional layer. The output
+HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
                                  # has the shape (1,1,1024) which is split into two streams. Both
                                  # the advantage stream and value stream have the shape
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001          # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00025          # Set to 0.00025 in Pong for quicker results. 0.00001
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
-PATH = "output/"                 # Gifs and checkpoints will be saved here
+PATH = "outputs/output_" + logNr + "/"                # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_13'
+RUNID = 'run_' + logNr
+
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
 
 atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-print("The environment has the following {} actions: {}".format(atari.env.action_space.n,
+print("The environment has the following {} actions: {}".format(action_space,
                                                                 atari.env.unwrapped.get_action_meanings()))
 
 # main DQN and target DQN networks:
 with tf.variable_scope('mainDQN'):
-    MAIN_DQN = DQN(atari.env.action_space.n, HIDDEN, LEARNING_RATE)   # (★★)
+    MAIN_DQN = DQN(action_space, HIDDEN, LEARNING_RATE)   # (★★)
 with tf.variable_scope('targetDQN'):
-    TARGET_DQN = DQN(atari.env.action_space.n, HIDDEN)               # (★★)
+    TARGET_DQN = DQN(action_space, HIDDEN)               # (★★)
 
 init = tf.global_variables_initializer()
 saver = tf.train.Saver()
@@ -534,13 +599,15 @@ PARAM_SUMMARIES = tf.summary.merge(ALL_PARAM_SUMMARIES)
 
 
 def train():
+    print("training started")
     """Contains the training and evaluation loops"""
     my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-    action_getter = ActionGetter(atari.env.action_space.n,
+    action_getter = ActionGetter(action_space,
                                  replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                  max_frames=MAX_FRAMES)
-
+    cnt = 0
+    modelcnt = 0
     with tf.Session() as sess:
         sess.run(init)
 
@@ -562,7 +629,7 @@ def train():
 
                     action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN)
                     processed_new_frame, reward, terminal, terminal_life_lost, _ = atari.step(sess, action)
-
+                    #print(action)
                     # (5★)
 
                     frame_number += 1
@@ -596,22 +663,29 @@ def train():
                                         feed_dict={LOSS_PH: np.mean(loss_list),
                                                    REWARD_PH: np.mean(rewards[-100:])})
 
-                        SUMM_WRITER.add_summary(summ, frame_number)
-                        loss_list = []
-                    # Histogramm summaries for tensorboard
-                    summ_param = sess.run(PARAM_SUMMARIES)
-                    SUMM_WRITER.add_summary(summ_param, frame_number)
+                        # SUMM_WRITER.add_summary(summ, frame_number)
+                        # loss_list = []
+                    # # Histogramm summaries for tensorboard
+                    # summ_param = sess.run(PARAM_SUMMARIES)
+                    # SUMM_WRITER.add_summary(summ_param, frame_number)
+
+                    if len(rewards) % 1000 == 0:
+                        epsilon = action_getter.getEpsilon()
+                        epsLog.loc[cnt] = frame_number, epsilon
+                        cnt += 1
+                        epsLog.to_csv("epsLog.csv", index=True)
+
 
                     print(len(rewards), frame_number, np.mean(rewards[-100:]))
-                    with open('rewards.dat', 'a') as reward_file:
-                        print(len(rewards), frame_number,
-                              np.mean(rewards[-100:]), file=reward_file)
+                    # with open('rewards.dat', 'a') as reward_file:
+                    #     print(len(rewards), frame_number,
+                    #           np.mean(rewards[-100:]), file=reward_file)
 
             ########################
             ###### Evaluation ######
             ########################
             terminal = True
-            gif = True
+            gif = False
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
@@ -625,10 +699,7 @@ def train():
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
-                                                                               atari.state,
-                                                                               MAIN_DQN,
-                                                                               evaluation=True)
+                action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward
@@ -640,20 +711,24 @@ def train():
                     gif = False  # Save only the first game of the evaluation as a gif
 
             print("Evaluation score:\n", np.mean(eval_rewards))
-            try:
-                generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
-            except IndexError:
-                print("No evaluation game finished")
 
-            # Save the network parameters
-            saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            # try:
+            #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
+            # except IndexError:
+            #     print("No evaluation game finished")
+
+            modelcnt += 1
+
+            if modelcnt % 10 == 0:
+                # Save the network parameters
+                saver.save(sess, PATH + '/my_model', global_step=frame_number)
             frames_for_gif = []
-
-            # Show the evaluation score in tensorboard
-            summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            SUMM_WRITER.add_summary(summ, frame_number)
-            with open('rewardsEval.dat', 'a') as eval_reward_file:
-                print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+            #
+            # # Show the evaluation score in tensorboard
+            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            # SUMM_WRITER.add_summary(summ, frame_number)
+            # with open('rewardsEval.dat', 'a') as eval_reward_file:
+            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
@@ -671,7 +746,7 @@ if gameMode == "atari":
             trained_path = "trained/pong/"
             save_file = "my_model-3217770.meta"
 
-        action_getter = ActionGetter(atari.env.action_space.n,
+        action_getter = ActionGetter(action_space,
                                      replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                      max_frames=MAX_FRAMES)
 
@@ -709,17 +784,18 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "output/"
-                save_file = "my_model-1643597.meta"
+                trained_path = "output_run_24/"
+                save_file = "my_model-1209676.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"
                 save_file = "my_model-3217770.meta"
 
-            action_getter = ActionGetter(atari.env.action_space.n,
+            action_getter = ActionGetter(action_space,
                                          replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                          max_frames=MAX_FRAMES)
 
+            print("running")
             with tf.Session() as sess:
                 saver = tf.train.import_meta_graph(trained_path + save_file)
                 saver.restore(sess, tf.train.latest_checkpoint(trained_path))
@@ -730,8 +806,7 @@ else:
                 episode_reward_sum = 0
 
                 while True:
-                    #atari.env.render()
-                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
+                    action_getter.get_action(sess, 0, atari.state,
                                                                                    MAIN_DQN,
                                                                                    evaluation=True)
                     processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
