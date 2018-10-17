@@ -17,11 +17,11 @@ class PlayGame(object):
 
 
         dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
-        self.training_df_BTC = pd.read_csv("./crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_BTC = pd.read_csv("./crypto//Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_BTC = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_BTC = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
-        self.training_df_ETH = pd.read_csv("./crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_ETH = pd.read_csv("./crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.training_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
         self.eLogCnt = 0
         self.tLogCnt = 0
@@ -65,7 +65,7 @@ class PlayGame(object):
             self.df_BTC = self.training_df_BTC
             self.df_ETH = self.training_df_ETH
 
-        self.gameLength = 72  # How long the game should go on
+        self.gameLength = 168  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
         self.timeStepSize = "H"  # Does nothing atm
         self.amountToSpend = 500  # How much to purchase crypto for
@@ -277,8 +277,8 @@ class PlayGame(object):
         if self.cnt == self.gameLength:
             self.done = True
 
-        if self.guessedWrongCnt == 10:
-            self.done = True
+        #if self.guessedWrongCnt == 24:
+            #self.done = True
 
         # if self.evaluation != True:
         #     if self.guessedWrongCnt == 10:

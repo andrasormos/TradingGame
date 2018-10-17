@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -19,13 +19,6 @@ import tensorflow as tf
 import numpy as np
 import imageio
 from skimage.transform import resize
-from game_engines.GameEngine_v013 import PlayGame
-
-GE = PlayGame()
-
-logNr = "045"
-
-GE.defineLogNr(logNr)
 
 gameMode = "notatari"
 
@@ -38,12 +31,12 @@ class ProcessFrame:
             frame_height: Integer, Height of a frame of an Atari game
             frame_width: Integer, Width of a frame of an Atari game
         """
-        self.frame_height = frame_height
-        self.frame_width = frame_width
-        self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
-        self.processed = tf.image.rgb_to_grayscale(self.frame)
-        self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
-        self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # self.frame_height = frame_height
+        # self.frame_width = frame_width
+        # self.frame = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
+        # self.processed = tf.image.rgb_to_grayscale(self.frame)
+        # self.processed = tf.image.crop_to_bounding_box(self.processed, 34, 0, 160, 160)
+        # self.processed = tf.image.resize_images(self.processed, [self.frame_height, self.frame_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 
 
@@ -463,10 +456,16 @@ class Atari:
 
 tf.reset_default_graph()
 
+from game_engines.GameEngine_v013 import PlayGame
+GE = PlayGame()
+
+logNr = "046"
+GE.defineLogNr(logNr)
+
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 10000          # Number of frames the agent sees between evaluations 200 000
-EVAL_STEPS = 500                 # Number of frames for one evaluation #10000
+EVAL_FREQUENCY = 8000          # Number of frames the agent sees between evaluations 200 000
+EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
                                  # parameter updates (every four actions), however, in the
@@ -486,13 +485,13 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001          # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00001        # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
-PATH = "output/"                 # Gifs and checkpoints will be saved here
+PATH = "outputs/output_" + logNr + "/"                  # Gifs and checkpoints will be saved here
 SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_45'
+RUNID = 'run_' + logNr
 os.makedirs(PATH, exist_ok=True)
 os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
 SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
@@ -608,15 +607,15 @@ def train():
                     SUMM_WRITER.add_summary(summ_param, frame_number)
 
                     print(len(rewards), frame_number, np.mean(rewards[-100:]))
-                    with open('rewards.dat', 'a') as reward_file:
-                        print(len(rewards), frame_number,
-                              np.mean(rewards[-100:]), file=reward_file)
+                    # with open('rewards.dat', 'a') as reward_file:
+                    #     print(len(rewards), frame_number,
+                    #           np.mean(rewards[-100:]), file=reward_file)
 
             ########################
             ###### Evaluation ######
             ########################
             terminal = True
-            gif = True
+            gif = False
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
@@ -645,20 +644,20 @@ def train():
                     gif = False  # Save only the first game of the evaluation as a gif
 
             print("Evaluation score:\n", np.mean(eval_rewards))
-            try:
-                generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
-            except IndexError:
-                print("No evaluation game finished")
+            # try:
+            #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
+            # except IndexError:
+            #     print("No evaluation game finished")
 
             # Save the network parameters
             saver.save(sess, PATH + '/my_model', global_step=frame_number)
             frames_for_gif = []
 
             # Show the evaluation score in tensorboard
-            summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            SUMM_WRITER.add_summary(summ, frame_number)
-            with open('rewardsEval.dat', 'a') as eval_reward_file:
-                print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            # SUMM_WRITER.add_summary(summ, frame_number)
+            # with open('rewardsEval.dat', 'a') as eval_reward_file:
+            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
@@ -714,8 +713,8 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "outputs/output_run_24/"
-                save_file = "my_model-1209676.meta"
+                trained_path = "output/"
+                save_file = "my_model-1643597.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"

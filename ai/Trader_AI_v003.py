@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -30,7 +30,7 @@ action_space = 3
 
 GE = PlayGame()
 
-logNr = "023G"
+logNr = "045"
 
 GE.defineLogNr(logNr)
 
@@ -784,7 +784,7 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "output_run_24/"
+                trained_path = "outputs/output_run_24/"
                 save_file = "my_model-1209676.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
@@ -806,9 +806,7 @@ else:
                 episode_reward_sum = 0
 
                 while True:
-                    action_getter.get_action(sess, 0, atari.state,
-                                                                                   MAIN_DQN,
-                                                                                   evaluation=True)
+                    action = action_getter.get_action(sess, 0, atari.state, MAIN_DQN, evaluation=True)
                     processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
                     episode_reward_sum += reward
                     frames_for_gif.append(new_frame)
