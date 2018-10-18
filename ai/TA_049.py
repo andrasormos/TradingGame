@@ -201,11 +201,9 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        #choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
+        choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
         QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
-        #highestQValue = QValues[0][choice]
-
-        actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        highestQValue = QValues[0][choice]
 
         predBuy = QValues[0][1]
         predSell = QValues[0][2]
@@ -219,18 +217,10 @@ class ActionGetter:
         floor = np.amin(predBoth)
         percentDiff = np.absolute(1 - (ceiling / floor))
 
-        if actionToTake == 1 and percentDiff < 0.02:
+        if percentDiff < 0.035:
             actionToTake = 0
-
-        elif actionToTake == 2 and percentDiff < 0.01:
-            actionToTake = 0
-
         else:
             actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
-
-
-
-
 
         #print("actionToTake", actionToTake)
 
@@ -742,8 +732,8 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "outputs/output_050C/"
-                save_file = "my_model-408816.meta"
+                trained_path = "outputs/output_048C/"
+                save_file = "my_model-128256.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"

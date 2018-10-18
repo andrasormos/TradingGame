@@ -460,7 +460,7 @@ from game_engines.GE_v048 import PlayGame
 
 GE = PlayGame()
 
-logNr = "048C"
+logNr = "048D"
 GE.defineLogNr(logNr)
 
 # Control parameters
