@@ -23,6 +23,9 @@ class PlayGame(object):
         self.training_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
         self.eval_df_ETH = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
 
+        self.training_df_LTC = pd.read_csv("./new_crypto/Gdax_LTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+        self.eval_df_LTC = pd.read_csv("./new_crypto/Gdax_LTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+
         self.eLogCnt = 0
         self.tLogCnt = 0
         self.gamesPlayedCnt = 0
@@ -61,9 +64,11 @@ class PlayGame(object):
         if self.evaluation == True:
             self.df_BTC = self.eval_df_BTC
             self.df_ETH = self.eval_df_ETH
+            self.df_LTC = self.eval_df_LTC
         else:
             self.df_BTC = self.training_df_BTC
             self.df_ETH = self.training_df_ETH
+            self.df_LTC = self.training_df_LTC
 
         self.gameLength = 168  # How long the game should go on
         self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
@@ -114,11 +119,13 @@ class PlayGame(object):
         if self.evaluation == True:
             self.df_segment_BTC = self.df_BTC.loc[self.endDate: self.startDate]
             self.df_segment_ETH = self.df_ETH.loc[self.endDate: self.startDate]
+            self.df_segment_LTC = self.df_LTC.loc[self.endDate: self.startDate]
             # print("EVAL DF")
             # print(self.df_segment_BTC)
         else:
             self.df_segment_BTC = self.df_BTC.loc[self.startDate: self.endDate]
             self.df_segment_ETH = self.df_ETH.loc[self.startDate: self.endDate]
+            self.df_segment_LTC = self.df_LTC.loc[self.startDate: self.endDate]
             # print("TRAIN DF")
             # print(self.df_segment_BTC)
 
@@ -267,8 +274,9 @@ class PlayGame(object):
 
         self.previousBTCPrice = self.currentBTCPrice
 
-        # self.reward = self.reward - 0.003
-        # print("reward", self.reward)
+        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
+        # if self.actionTaken == 1 or self.actionTaken == 2:
+        #     self.reward = self.reward - 0.15
 
 
         # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
@@ -468,22 +476,35 @@ class PlayGame(object):
 
         timeFrame = timeFrame
         PRICE_RANGE = timeFrame
-        half_scale_size = int(PRICE_RANGE / 2)
-        #half_scale_size = int(PRICE_RANGE)
-        
+        # half_scale_size = int(PRICE_RANGE)    # 1 chart
+        half_scale_size = int(PRICE_RANGE / 2)  # 2 charts
+
+        half_scale_size = int(PRICE_RANGE / 3)  # 3 charts
+
+
+
+        # BTC
         closes_BTC = self.df_segment_BTC["Close"]
         roundedCloses = ['%.2f' % elem for elem in closes_BTC]
         closes_BTC = closes_BTC[::-1]
         close_data_together_BTC = list(np.round(scale_list(closes_BTC[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
         graph_close_BTC = close_data_together_BTC[0:PRICE_RANGE]
 
-        #print(df_segment_ETH)
 
+        # ETH
         closes_ETH = self.df_segment_ETH["Close"]
         roundedCloses = ['%.2f' % elem for elem in closes_ETH]
         closes_ETH = closes_ETH[::-1]
         close_data_together_ETH = list(np.round(scale_list(closes_ETH[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
         graph_close_ETH = close_data_together_ETH[0:PRICE_RANGE]
+
+        # LTC
+        closes_LTC = self.df_segment_LTC["Close"]
+        roundedCloses = ['%.2f' % elem for elem in closes_ETH]
+        closes_LTC = closes_LTC[::-1]
+        close_data_together_LTC = list(np.round(scale_list(closes_LTC[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
+        graph_close_LTC = close_data_together_LTC[0:PRICE_RANGE]
+
 
         def graphRender(data):
             blank_matrix_close = np.zeros(shape=(half_scale_size, timeFrame))
@@ -516,8 +537,9 @@ class PlayGame(object):
 
         BTC = graphRender(graph_close_BTC)
         ETH = graphRender(graph_close_ETH)
+        LTC = graphRender(graph_close_LTC)
 
-        stackedCharts = np.vstack([BTC, ETH])
+        stackedCharts = np.vstack([BTC, ETH, LTC])
 
         return stackedCharts
 

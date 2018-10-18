@@ -456,11 +456,13 @@ class Atari:
 
 tf.reset_default_graph()
 
-from game_engines.GameEngine_v013 import PlayGame
+logNr = "050"
+this = "game_engines.GameEngine_v"
+from game_engines.GE_v049 import PlayGame
 
 GE = PlayGame()
 
-logNr = "046"
+
 GE.defineLogNr(logNr)
 
 # Control parameters
@@ -486,7 +488,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001        # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.000125        # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
@@ -630,10 +632,7 @@ def train():
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                action = 1 if terminal_life_lost else action_getter.get_action(sess, frame_number,
-                                                                               atari.state,
-                                                                               MAIN_DQN,
-                                                                               evaluation=True)
+                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward

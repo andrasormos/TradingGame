@@ -269,18 +269,16 @@ class PlayGame(object):
 
         # self.reward = self.reward - 0.003
         # print("reward", self.reward)
-
-
         # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
-        # if self.BTCPercentChange < 0.15:
-        #     self.reward = 0
+        #if self.BTCPercentChange < 0.15:
+            #self.reward = 0
 
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
             self.done = True
 
-        # if self.guessedWrongCnt == 24:
-        #     self.done = True
+        #if self.guessedWrongCnt == 24:
+            #self.done = True
 
         # if self.evaluation != True:
         #     if self.guessedWrongCnt == 10:

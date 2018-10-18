@@ -267,13 +267,14 @@ class PlayGame(object):
 
         self.previousBTCPrice = self.currentBTCPrice
 
-        # self.reward = self.reward - 0.003
-        # print("reward", self.reward)
+        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
+        if self.actionTaken == 1 or self.actionTaken == 2:
+            self.reward = self.reward - 0.15
 
 
         # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
-        # if self.BTCPercentChange < 0.15:
-        #     self.reward = 0
+        if self.BTCPercentChange < 0.15:
+            self.reward = 0
 
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
