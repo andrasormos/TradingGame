@@ -290,11 +290,11 @@ class PlayGame(object):
         #print("profit", self.profit)
 
         # -------------------------------- SELL ALL BTC AND LOCK IN PROFIT OR LOSS ------------------------------------
-        # if self.actionTaken == 1:
-        #     self.realMoneySpent += self.poundsToTrade
-        #     self.timeToSellCnt = 0
-        #     self.timeToSellClock = True
-        #     self.priceAtTimeOfPurchase = self.currentBTCPrice
+        if self.actionTaken == 1:
+            self.realMoneySpent += self.poundsToTrade
+            self.timeToSellCnt = 0
+            self.timeToSellClock = True
+            self.priceAtTimeOfPurchase = self.currentBTCPrice
 
         if self.timeToSellClock == True:
             self.timeToSellCnt += 1

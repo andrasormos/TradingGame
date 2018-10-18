@@ -8,8 +8,11 @@ import matplotlib.image as mpimg
 from matplotlib.widgets import Button, TextBox
 import os.path
 import sys
+from skimage import draw
+
 
 sys.setrecursionlimit(10000)
+np.set_printoptions(threshold=np.nan, linewidth=300)
 
 class PlayGame(object):
     def __init__(self):
@@ -97,6 +100,7 @@ class PlayGame(object):
         self.guessSkipCnt = 0
         self.guessCnt = 0
 
+        self.percentProfitReward = 0
         self.rewardList = []
         self.guessOutcome = 0
         self.sumRightPerc = 0
@@ -226,18 +230,23 @@ class PlayGame(object):
         # print("BTC balance:", self.BTC_Balance, " worth=", self.BTC_Balance * self.currentBTCPrice)
 
 
+        if self.realMoneySpent == 0:
+            self.percentProfitReward = 0
+        else:
+            self.percentProfitReward = (self.profit / self.realMoneySpent) * 100
+
         # WHEN BTC WENT UP
         self.guessCnt += 1
         if self.currentBTCPrice > self.previousBTCPrice:
             if self.actionTaken == 1:
                 self.guessUpCnt += 1
-                self.reward = self.BTCPercentChange
+                self.reward = 0
                 self.guessedRightCnt += 1
                 self.guessOutcome = 1
 
             if self.actionTaken == 2:
                 self.guessDownCnt += 1
-                self.reward = self.BTCPercentChange * -1
+                self.reward = self.percentProfitReward
                 self.guessedWrongCnt += 1
                 self.guessOutcome = -1
 
@@ -250,13 +259,13 @@ class PlayGame(object):
         if self.currentBTCPrice < self.previousBTCPrice:
             if self.actionTaken == 1:
                 self.guessUpCnt += 1
-                self.reward = self.BTCPercentChange
+                self.reward = 0
                 self.guessedWrongCnt += 1
                 self.guessOutcome = -1
 
             if self.actionTaken == 2:
                 self.guessDownCnt += 1
-                self.reward = self.BTCPercentChange * -1
+                self.reward = self.percentProfitReward
                 self.guessedRightCnt += 1
                 self.guessOutcome = 1
 
@@ -264,6 +273,8 @@ class PlayGame(object):
                 self.guessSkipCnt += 1
                 self.reward = 0
                 self.guessOutcome = 0
+
+        #print("REWARD", self.reward)
 
         self.previousBTCPrice = self.currentBTCPrice
 
@@ -286,16 +297,16 @@ class PlayGame(object):
         #     if self.guessedWrongCnt == 10:
         #         self.done = True
 
-        image = self.getChartImage(self.timeFrame)
+
 
         #print("profit", self.profit)
 
         # -------------------------------- SELL ALL BTC AND LOCK IN PROFIT OR LOSS ------------------------------------
-        # if self.actionTaken == 1:
-        #     self.realMoneySpent += self.poundsToTrade
-        #     self.timeToSellCnt = 0
-        #     self.timeToSellClock = True
-        #     self.priceAtTimeOfPurchase = self.currentBTCPrice
+        if self.actionTaken == 1:
+            self.realMoneySpent += self.poundsToTrade
+            self.timeToSellCnt = 0
+            self.timeToSellClock = True
+            self.priceAtTimeOfPurchase = self.currentBTCPrice
 
         if self.timeToSellClock == True:
             self.timeToSellCnt += 1
@@ -303,49 +314,6 @@ class PlayGame(object):
             if self.timeToSellCnt > 1:
                 BTCPercentGainLossSincePurchase = (self.currentBTCPrice / self.priceAtTimeOfPurchase)
                 BTCPercentChangeSincePurchase = -1 * (np.round((100 - (BTCPercentGainLossSincePurchase * 100)), 4))
-
-                # if  BTCPercentChangeSincePurchase > 1:
-                #     print("IT WAS TIME TO SELL")
-                #     self.actionTaken = 2
-                #     self.timeToSellCnt = 0
-                #     self.timeToSellClock = False
-
-                if self.timeToSellCnt == 1 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 2 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 3 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 4 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 5 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 6 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 7 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 8 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
-                elif self.timeToSellCnt == 9 and BTCPercentChangeSincePurchase > 1:
-                    self.actionTaken = 2
-                    self.timeToSellCnt = 0
-                    self.timeToSellClock = False
 
         if self.actionTaken == 2:
             self.realMoneySpent = 0
@@ -384,13 +352,25 @@ class PlayGame(object):
                 self.df_actionLog.loc[self.aLogCnt] = self.previousBTCPrice, bought, sold
                 self.df_actionLog.to_csv(self.actionLogPathName, index=True)
 
+        # print("BTC Price", self.currentBTCPrice)
+        # print("Spent:", self.realMoneySpent)
+        # print("Profit:", self.profit)
+        # print("BTC Balance:", self.BTC_Balance)
+        # print("Balance:", self.fullBalance)
+        # print("Cash:", self.cashBalance)
+        # print("Initial Balance:", self.initialBalance)
+
+
         if self.done == True:
+            #print("END")
             self.gamesPlayedCnt += 1
             self.profitSum += self.profit
             self.sumPercent = self.sumRightPerc + self.sumWrongPerc
             self.sumRightPerc = 0
             self.sumWrongPerc = 0
             self.profit = 0
+
+        #print("\n")
 
         # ------------------------------------------  WRITE EVALUATION LOG  ------------------------------------------
 
@@ -429,6 +409,8 @@ class PlayGame(object):
             elif self.actionTaken == 2 and self.guessOutcome == -1:
                 fileName = "/home/andras/PycharmProjects/TradingGame/examination/wrong/guessed_down/" + str(self.guessedWrongCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
                 plt.savefig(fileName)
+
+        image = self.getChartImage(self.timeFrame)
 
         return image, self.reward, self.done
 
@@ -487,6 +469,7 @@ class PlayGame(object):
 
         def graphRender(data):
             blank_matrix_close = np.zeros(shape=(half_scale_size, timeFrame))
+            #print(blank_matrix_close)
             x_ind = 0
             previous_pixel = 0
 
@@ -505,7 +488,7 @@ class PlayGame(object):
 
                     if difference >= 0:
                         next_pixel = (next_pixel + 1).astype(np.uint8)
-                        blank_matrix_close[next_pixel, x_ind] = 80
+                        blank_matrix_close[next_pixel, x_ind] = 100
 
                     if difference < 0:
                         next_pixel = (next_pixel - 1).astype(np.uint8)
@@ -516,8 +499,37 @@ class PlayGame(object):
 
         BTC = graphRender(graph_close_BTC)
         ETH = graphRender(graph_close_ETH)
-
         stackedCharts = np.vstack([BTC, ETH])
+
+        def reMap(OldValue,OldMin,OldMax,NewMin,NewMax,MinLimit,MaxLimit):
+
+            rescaled = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
+            if rescaled > MinLimit:
+                rescaled = MinLimit
+
+            if rescaled < MaxLimit:
+                rescaled = MaxLimit
+            return rescaled
+
+        def profitMeter(chart):
+            matrix = np.zeros(shape=(half_scale_size*2, timeFrame))
+
+
+            yAxis = reMap(self.percentProfitReward, -3,3, 84,0, 84, 0)
+
+            radius = reMap(self.realMoneySpent, 0,2000,1,10, 10, 1)
+
+            rr, cc = draw.circle(yAxis, 42, radius=radius, shape=matrix.shape)
+            matrix[rr, cc] = 60
+
+            matrix = matrix + chart
+
+            return matrix
+
+        stackedCharts = profitMeter(stackedCharts)
+
+
+        #print(stackedCharts)
 
         return stackedCharts
 
