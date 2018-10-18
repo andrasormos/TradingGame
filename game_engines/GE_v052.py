@@ -274,14 +274,6 @@ class PlayGame(object):
 
         self.previousBTCPrice = self.currentBTCPrice
 
-        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
-        # if self.actionTaken == 1 or self.actionTaken == 2:
-        #     self.reward = self.reward - 0.15
-
-
-        # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
-        # if self.BTCPercentChange < 0.15:
-        #     self.reward = 0
 
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
@@ -437,6 +429,16 @@ class PlayGame(object):
             elif self.actionTaken == 2 and self.guessOutcome == -1:
                 fileName = "/home/andras/PycharmProjects/TradingGame/examination/wrong/guessed_down/" + str(self.guessedWrongCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
                 plt.savefig(fileName)
+
+        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
+        # if self.actionTaken == 1 or self.actionTaken == 2:
+        #     self.reward = self.reward - 0.15
+
+
+        # ---------------------------- WE ARE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
+        # if self.BTCPercentChange < 0.15:
+        #     self.reward = 0
+
 
         return image, self.reward, self.done
 

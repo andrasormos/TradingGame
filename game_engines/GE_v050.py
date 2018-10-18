@@ -267,12 +267,6 @@ class PlayGame(object):
 
         self.previousBTCPrice = self.currentBTCPrice
 
-        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
-        #if self.actionTaken == 1 or self.actionTaken == 2:
-            #self.reward = self.reward - 0.15
-
-
-
 
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
@@ -411,9 +405,35 @@ class PlayGame(object):
                 self.tLogCnt += 1
 
         # ---------------------------------------------  SAVE IMAGE   ------------------------------------------------
+        if 1 == 2:
 
+            plt.imshow(image, cmap='hot')
+
+            if self.actionTaken == 1 and self.guessOutcome == 1:
+                fileName = "/home/andras/PycharmProjects/TradingGame/examination/right/guessed_up/" + str(self.guessedRightCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
+                plt.savefig(fileName)
+            elif self.actionTaken == 1 and self.guessOutcome == -1:
+                fileName = "/home/andras/PycharmProjects/TradingGame/examination/wrong/guessed_up/" + str(self.guessedWrongCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
+                plt.savefig(fileName)
+
+            if self.actionTaken == 2 and self.guessOutcome == 1:
+                fileName = "/home/andras/PycharmProjects/TradingGame/examination/right/guessed_down/" + str(self.guessedRightCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
+                plt.savefig(fileName)
+            elif self.actionTaken == 2 and self.guessOutcome == -1:
+                fileName = "/home/andras/PycharmProjects/TradingGame/examination/wrong/guessed_down/" + str(self.guessedWrongCnt) + "_" + str(np.round(self.BTCPercentChange, 2)) + "%" + ".png"
+                plt.savefig(fileName)
+
+
+        # -------------------------------------- PUNISHMENT FOR MAKING A CHOICE ----------------------------------------
+        if self.actionTaken == 1:
+            self.reward = self.reward - 0.5
+
+        if self.actionTaken == 2 and self.BTCPercentChange < 0:
+            self.reward = self.reward * 3
+        # ---------------------------- WE A RE NOT JUDGING POINTS ON SUCH SMALL CHANGES --------------------------------
         if self.BTCPercentChange < 0.15:
             self.reward = 0
+
 
         return image, self.reward, self.done
 

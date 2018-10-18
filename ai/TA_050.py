@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -201,36 +201,7 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        #choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
-        QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
-        #highestQValue = QValues[0][choice]
-
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
-
-        predBuy = QValues[0][1]
-        predSell = QValues[0][2]
-        predBoth = []
-        predBoth.append(predBuy)
-        predBoth.append(predSell)
-
-        diff = np.absolute(predBuy - predSell)
-
-        ceiling = np.amax(predBoth)
-        floor = np.amin(predBoth)
-        percentDiff = np.absolute(1 - (ceiling / floor))
-
-        if actionToTake == 1 and percentDiff < 0.02:
-            actionToTake = 0
-
-        elif actionToTake == 2 and percentDiff < 0.01:
-            actionToTake = 0
-
-        else:
-            actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
-
-
-
-
 
         #print("actionToTake", actionToTake)
 
@@ -485,9 +456,9 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "050_eval"
+logNr = "050C"
 this = "game_engines.GameEngine_v"
-from game_engines.GE_v049 import PlayGame
+from game_engines.GE_v050 import PlayGame
 
 GE = PlayGame()
 
@@ -742,8 +713,8 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "outputs/output_050C/"
-                save_file = "my_model-408816.meta"
+                trained_path = "output/"
+                save_file = "my_model-1643597.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"

@@ -458,7 +458,7 @@ tf.reset_default_graph()
 
 logNr = "052B"
 this = "game_engines.GameEngine_v"
-from game_engines.GE_v051 import PlayGame
+from game_engines.GE_v052 import PlayGame
 
 GE = PlayGame()
 
@@ -488,7 +488,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.000125        # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00002        # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
