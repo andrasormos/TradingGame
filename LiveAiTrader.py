@@ -18,7 +18,7 @@ BTCcnt = 0
 ETHCnt = 0
 
 def extractBTC():
-    old_csv = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_BTC_close.csv")
+    old_csv = pd.read_csv("./cryptoExtract/latest_BTC_close.csv")
     output = client.get_product_ticker(gdax.BTC_USD)
     close = np.asarray(output)
     close = output.get('price')
@@ -30,10 +30,10 @@ def extractBTC():
     print(df_BTC)
 
     new_csv = pd.DataFrame(df_BTC, columns=['Date', 'Close']).append(old_csv, ignore_index=True)
-    new_csv.to_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_BTC_close.csv", index=False)
+    new_csv.to_csv("./cryptoExtract/latest_BTC_close.csv", index=False)
 
 def extractETH():
-    old_csv = pd.read_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_ETH_close.csv")
+    old_csv = pd.read_csv("./cryptoExtract/latest_ETH_close.csv")
     output = client.get_product_ticker(gdax.ETH_USD)
     close = np.asarray(output)
     close = output.get('price')
@@ -45,7 +45,7 @@ def extractETH():
     print(df_ETH)
 
     new_csv = pd.DataFrame(df_ETH, columns=['Date', 'Close']).append(old_csv, ignore_index=True)
-    new_csv.to_csv("/home/andras/PycharmProjects/gdaxMarshall/cryptoExtract/latest_ETH_close.csv", index=False)
+    new_csv.to_csv("./cryptoExtract/latest_ETH_close.csv", index=False)
 
 
 

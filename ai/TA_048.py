@@ -95,19 +95,19 @@ class DQN:
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv3')
         self.conv4 = tf.layers.conv2d(
             inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv4')
 
         # Splitting into value and advantage stream
         self.valuestream, self.advantagestream = tf.split(self.conv4, 2, 3)
