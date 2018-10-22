@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -456,8 +456,9 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "054"
-this = "game_engines.GameEngine_v"
+logNr = "054E"
+modelName = "my_model-1370736.meta"
+modelPath = "outputs/output_054/"
 from game_engines.GE_v054 import PlayGame
 
 GE = PlayGame()
@@ -618,7 +619,7 @@ def train():
             ###### Evaluation ######
             ########################
             terminal = True
-            gif = True
+            gif = False
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
@@ -644,12 +645,10 @@ def train():
                     gif = False  # Save only the first game of the evaluation as a gif
 
             print("Evaluation score:\n", np.mean(eval_rewards))
-
-            if gif == True:
-                try:
-                    generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
-                except IndexError:
-                    print("No evaluation game finished")
+            # try:
+            #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
+            # except IndexError:
+            #     print("No evaluation game finished")
 
             # Save the network parameters
             saver.save(sess, PATH + '/my_model', global_step=frame_number)
@@ -715,8 +714,8 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "output/"
-                save_file = "my_model-1643597.meta"
+                trained_path = modelPath
+                save_file = modelName
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"
@@ -748,6 +747,6 @@ else:
 
                 #atari.env.close()
                 print("The total reward is {}".format(episode_reward_sum))
-                #print("Creating gif...")
-                #generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
-                #print("Gif created, check the folder {}".format(gif_path))
+                print("Creating gif...")
+                generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
+                print("Gif created, check the folder {}".format(gif_path))

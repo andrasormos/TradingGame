@@ -80,6 +80,7 @@ class PlayGame(object):
         self.actionTaken = 0
         self.sumProfit = 0
 
+        self.terminal = False
         self.timeToSellCnt = 0
         self.timeToSellClock = False
         self.guessedRightCnt = 0
@@ -293,9 +294,7 @@ class PlayGame(object):
         # if self.guessedWrongCnt == 24:
         #     self.done = True
 
-        # if self.evaluation != True:
-        #     if self.guessedWrongCnt == 10:
-        #         self.done = True
+
 
 
 
@@ -316,6 +315,7 @@ class PlayGame(object):
                 BTCPercentChangeSincePurchase = -1 * (np.round((100 - (BTCPercentGainLossSincePurchase * 100)), 4))
 
         if self.actionTaken == 2:
+            self.rewardSum = self.rewardSum + self.reward
             self.realMoneySpent = 0
             self.timeToSellClock = False
             self.profitSum += self.profit
@@ -331,26 +331,28 @@ class PlayGame(object):
             self.sumWrongPerc += self.BTCPercentChange
 
         # print("\n")
-        self.rewardSum = self.rewardSum + self.reward
 
-        if self.evaluation == True:
-            if self.gamesPlayedCnt % 3 == 0 and self.gamesPlayedCnt != 0:
 
-                if self.actionTaken == 1:
-                    bought = self.previousBTCPrice
-                    sold = 0
 
-                if self.actionTaken == 2:
-                    bought = 0
-                    sold = self.previousBTCPrice
 
-                if self.actionTaken == 3:
-                    bought = 0
-                    sold = 0
 
-                self.aLogCnt += 1
-                self.df_actionLog.loc[self.aLogCnt] = self.previousBTCPrice, bought, sold
-                self.df_actionLog.to_csv(self.actionLogPathName, index=True)
+        if self.gamesPlayedCnt % 10 == 0 and self.gamesPlayedCnt != 0:
+
+            if self.actionTaken == 1:
+                bought = self.previousBTCPrice
+                sold = 0
+
+            if self.actionTaken == 2:
+                bought = 0
+                sold = self.previousBTCPrice
+
+            if self.actionTaken == 3:
+                bought = 0
+                sold = 0
+
+            self.aLogCnt += 1
+            self.df_actionLog.loc[self.aLogCnt] = self.previousBTCPrice, bought, sold
+            self.df_actionLog.to_csv(self.actionLogPathName, index=True)
 
         # print("BTC Price", self.currentBTCPrice)
         # print("Spent:", self.realMoneySpent)
@@ -369,6 +371,8 @@ class PlayGame(object):
             self.sumRightPerc = 0
             self.sumWrongPerc = 0
             self.profit = 0
+
+
 
         #print("\n")
 
@@ -412,7 +416,9 @@ class PlayGame(object):
 
         image = self.getChartImage(self.timeFrame)
 
+
         return image, self.reward, self.done
+
 
     def getBTCPercentChange(self):
         return self.BTCPercentChange
@@ -474,7 +480,7 @@ class PlayGame(object):
             previous_pixel = 0
 
             for next_pixel in data:
-                blank_matrix_close[int(next_pixel), x_ind] = 255
+                blank_matrix_close[int(next_pixel), x_ind] = 215
                 plus = True
 
                 if x_ind == 0:
@@ -492,7 +498,7 @@ class PlayGame(object):
 
                     if difference < 0:
                         next_pixel = (next_pixel - 1).astype(np.uint8)
-                        blank_matrix_close[next_pixel, x_ind] = 180
+                        blank_matrix_close[next_pixel, x_ind] = 160
                 x_ind += 1
             blank_matrix_close = blank_matrix_close[::-1]
             return  blank_matrix_close
@@ -520,7 +526,7 @@ class PlayGame(object):
             radius = reMap(self.realMoneySpent, 0,2000,1,10, 10, 1)
 
             rr, cc = draw.circle(yAxis, 42, radius=radius, shape=matrix.shape)
-            matrix[rr, cc] = 60
+            matrix[rr, cc] = 40
 
             matrix = matrix + chart
 
