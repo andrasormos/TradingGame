@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -14,7 +14,7 @@ If you have questions or suggestions, write me a mail fabiograetzatgooglemaildot
 """
 import os
 import random
-import gym
+#import gym
 import tensorflow as tf
 import numpy as np
 import imageio
@@ -27,7 +27,7 @@ epsilon = 0
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
 
-    def __init__(self, frame_height=84, frame_width=84):
+    def __init__(self, frame_height=16, frame_width=16):
         """
         Args:
             frame_height: Integer, Height of a frame of an Atari game
@@ -48,14 +48,14 @@ class ProcessFrame:
             session: A Tensorflow session object
             frame: A (210, 160, 3) frame of an Atari game in RGB
         Returns:
-            A processed (84, 84, 1) frame in grayscale
+            A processed (16, 16, 1) frame in grayscale
         """
 
         if gameMode == "atari":
             processedFrame = session.run(self.processed, feed_dict={self.frame: frame})
             # mat = processedFrame[:, :, 0]
         else:
-            frame = np.reshape([frame], (84, 84, 1))
+            frame = np.reshape([frame], (16, 16, 1))
             processedFrame = np.uint8(frame)
 
             # mat = processedFrame[:, :, 0]
@@ -70,8 +70,8 @@ class DQN:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, n_actions, hidden=1024, learning_rate=0.00001,
-                 frame_height=84, frame_width=84, agent_history_length=4):
+    def __init__(self, n_actions, hidden=512, learning_rate=0.00001,
+                 frame_height=16, frame_width=16, agent_history_length=4):
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -95,21 +95,33 @@ class DQN:
 
         # Convolutional layers
         self.conv1 = tf.layers.conv2d(
-            inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
+            inputs=self.inputscaled, filters=16, kernel_size=[1, 1], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
-            inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
+            inputs=self.conv1, filters=32, kernel_size=[2, 2], strides=2,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
-            inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
+            inputs=self.conv2, filters=32, kernel_size=[2, 2], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv3')
         self.conv4 = tf.layers.conv2d(
             inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv4')
+
+        print("inputscaled")
+        print(np.shape(self.inputscaled))
+        print("conv1")
+        print(np.shape(self.conv1))
+        print("conv2")
+        print(np.shape(self.conv2))
+        print("conv3")
+        print(np.shape(self.conv3))
+        print("conv4")
+        print(np.shape(self.conv4))
+
 
         # Splitting into value and advantage stream
         self.valuestream, self.advantagestream = tf.split(self.conv4, 2, 3)
@@ -149,6 +161,8 @@ class ActionGetter:
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
                  replay_memory_start_size=50000, max_frames=25000000):
+
+        # 1 000 000
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -164,6 +178,7 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
+        self.currentEpsilon = 0
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
@@ -186,7 +201,7 @@ class ActionGetter:
         Args:
             session: A tensorflow session object
             frame_number: Integer, number of the current frame
-            state: A (84, 84, 4) sequence of frames of an Atari game in grayscale
+            state: A (16, 16, 4) sequence of frames of an Atari game in grayscale
             main_dqn: A DQN object
             evaluation: A boolean saying whether the agent is being evaluated
         Returns:
@@ -205,18 +220,23 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        epsilon = eps
+        if not evaluation:
+            self.currentEpsilon = eps
+
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
         #print("actionToTake", actionToTake)
 
         return actionToTake
 
+    def findEpsilon(self):
+        return self.currentEpsilon
+
 
 class ReplayMemory:
     """Replay Memory that stores the last size=1,000,000 transitions"""
 
-    def __init__(self, size=1000000, frame_height=84, frame_width=84,
+    def __init__(self, size=1000000, frame_height=16, frame_width=16,
                  agent_history_length=4, batch_size=32):
         """
         Args:
@@ -252,7 +272,7 @@ class ReplayMemory:
         Args:
             action: An integer between 0 and env.action_space.n - 1
                 determining the action the agent perfomed
-            frame: A (84, 84, 1) frame of an Atari game in grayscale
+            frame: A (16, 16, 1) frame of an Atari game in grayscale
             reward: A float determining the reward the agend received for performing an action
             terminal: A bool stating whether the episode terminated
         """
@@ -388,7 +408,7 @@ class Atari:
     """Wrapper for the environment provided by gym"""
 
     def __init__(self, envName, no_op_steps=10, agent_history_length=4):
-        self.env = gym.make(envName)
+        #self.env = gym.make(envName)
         self.frame_processor = ProcessFrame()
         self.state = None
         self.last_lives = 0
@@ -461,10 +481,10 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "057E"
-modelName = "my_model-232464.meta"
-modelPath = "outputs/output_057/"
-from game_engines.GE_v057 import PlayGame
+logNr = "066D"
+modelName = "my_model-1523040.meta"
+modelPath = "outputs/output_065/"
+from game_engines.GE_v066 import PlayGame
 
 GE = PlayGame()
 GE.defineLogNr(logNr)
@@ -492,7 +512,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00025        # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00025     # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
@@ -505,7 +525,7 @@ SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
 
 atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
+#print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
 
 # main DQN and target DQN networks:
 with tf.variable_scope('mainDQN'):
@@ -559,7 +579,7 @@ def train():
 
         doEvalType = "evalTrain"
         GE.setEvalType(doEvalType)
-        GE.setEpsilon(epsilon)
+
 
         while frame_number < MAX_FRAMES:
 
@@ -569,7 +589,6 @@ def train():
             epoch_frame = 0
             doEvalType = "evalTrain"
             GE.setEvalType(doEvalType)
-            GE.setFrameNumber(frame_number)
 
             while epoch_frame < EVAL_FREQUENCY:
                 terminal_life_lost = atari.reset(sess)
@@ -624,13 +643,14 @@ def train():
             ########################
             terminal = True
             gif = False
+            frameEpsGetter = True
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
 
             doEvalType = "evalReal"
             GE.setEvalType(doEvalType)
-            GE.setFrameNumber(frame_number)
+            print("EPSILON", epsilon)
 
             for _ in range(EVAL_STEPS):
                 if terminal:
@@ -642,6 +662,13 @@ def train():
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
                 action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
+
+                if frameEpsGetter == True:
+                    epsilon = action_getter.findEpsilon()
+                    GE.setFrameNumber(frame_number)
+                    GE.setEpsilon(epsilon)
+                    frameEpsGetter = False
+
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward
@@ -682,7 +709,6 @@ def train():
 
             doEvalType = "evalOverfit"
             GE.setEvalType(doEvalType)
-            GE.setFrameNumber(frame_number)
 
             for _ in range(EVAL_STEPS):
                 if terminal:

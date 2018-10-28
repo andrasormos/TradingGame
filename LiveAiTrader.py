@@ -5,7 +5,7 @@ import datetime
 import pandas as pd
 import schedule
 import time
-from ai.Trader_AI_v003_decider import Predictor
+from ai.ai_versions.Trader_AI_v003_decider import Predictor
 
 
 client = gdax.PublicClient()

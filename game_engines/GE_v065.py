@@ -35,7 +35,7 @@ class PlayGame(object):
         self.df_evalLog = pd.DataFrame(columns=["rewardSum", "profitSum", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt", "eps", "frame"])
         self.df_evalOverfitLog = pd.DataFrame(columns=["rewardSum", "profitSum", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt", "eps", "frame"])
 
-        self.actionLogOn = True
+        self.actionLogOn = False
         self.df_actionLog = pd.DataFrame(columns=["BTCPrice", "bought", "sold"])
         self.logNr = ""
         self.evalType = "evalTrain"
@@ -112,6 +112,7 @@ class PlayGame(object):
         self.guessCnt = 0
 
         self.percentProfitReward = 0
+        self.previousPercentProfitReward = 0
         self.rewardList = []
         self.guessOutcome = 0
 
@@ -135,8 +136,8 @@ class PlayGame(object):
             #print("TRAIN DF")
             #print(self.df_segment_BTC)
 
-        self.btcForState = 0
-        self.btcDuringAction = 0
+        self.btcFuture = 0
+        self.btcPresent = 0
         self.fullBalance = self.cashBalance
         self.prevFullBalance = self.fullBalance
         self.getInitBTCPrice()
@@ -153,7 +154,7 @@ class PlayGame(object):
         endIndex = self.endIndex
         endDate = self.df_BTC.index[endIndex]
         nextRow = self.df_BTC.loc[[endDate]]
-        self.btcForState = nextRow["Close"][0]
+        self.btcFuture = nextRow["Close"][0]
 
     def randomChart(self):
         if self.timeStepSize == "H":
@@ -171,72 +172,63 @@ class PlayGame(object):
     def nextStep(self, action):
         self.cnt = self.cnt + 1
 
+
+        self.endDate = self.df_BTC.index[self.endIndex + 1]
+        lastRow_BTC = self.df_BTC.loc[[self.endDate]]
+        self.btcPresent = lastRow_BTC["Close"][0]
+
         self.endDate = self.df_BTC.index[self.endIndex]
         lastRow_BTC = self.df_BTC.loc[[self.endDate]]
-        self.btcDuringAction = lastRow_BTC["Close"][0]
+        self.btcFuture = lastRow_BTC["Close"][0]
+
         self.BTCPercentChange = 0
+        # ----------------------------------------  CALCULATE PERCENTAGE CHANGE ----------------------------------------
+        BTCPercentGainLoss = (self.btcFuture / self.btcPresent)
+        self.BTCPercentChange = -1 * (np.round((100 - (BTCPercentGainLoss * 100)), 4))
 
-        self.profitDuringAction = self.profitForState
+        # print(self.btcPresent)
+        # print(self.btcFuture)
+        # print(self.df_segment_BTC)
 
-
-        # --------------------------- APPLY ACTION THAT WAS TAKEN BASED ON PREVIOUS STATE ----------------------------
+        # --------------------------- APPLY ACTION  ----------------------------
         if action == 1:
             self.actionReceived = 1
-            tradingFeeFiat = self.fiatToTrade * 0.000000001#0.003
-            amountOfBTCBought = (self.fiatToTrade - tradingFeeFiat) / self.btcDuringAction
+            self.guessUpCnt += 1
 
-            if self.firstPurchase == False:
-                if self.fiatToTrade <= self.cashBalance:
-                    self.cashBalance = self.cashBalance - self.fiatToTrade
-                    self.BTC_Balance = round((self.BTC_Balance + amountOfBTCBought), 5)
-                else:
-                    moneyEnoughForThisBTC = self.cashBalance / self.btcDuringAction
-                    self.cashBalance = self.cashBalance - moneyEnoughForThisBTC
-                    self.BTC_Balance = round((self.BTC_Balance + moneyEnoughForThisBTC), 5)
-            else:
-                self.firstPurchase = False
-
-                self.BTC_Balance = amountOfBTCBought
-                self.cashBalance = self.cashBalance - (self.fiatToTrade)
-
-        # FIX THIS ASWELL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if action == 2:
             self.actionReceived = 2
-            tradingFeeBTC = self.BTC_Balance * 0.000000001
-            amountOfFiatReceived = (self.BTC_Balance - tradingFeeBTC) * self.btcDuringAction
-            
-            self.cashBalance = self.cashBalance + amountOfFiatReceived
-
-            self.BTC_Balance = 0
+            self.guessDownCnt += 1
 
         if action == 0 or action == 3:
             self.actionReceived = 3
-
-        # -------------------------------- SELL ALL BTC AND LOCK IN PROFIT OR LOSS ------------------------------------
-        if self.actionReceived == 1:
-            self.guessUpCnt += 1
-            self.fiatMoneyInvested += self.fiatToTrade
-            self.priceAtTimeOfPurchase = self.btcDuringAction
-            # MAYBE GIVE SLIGHT REWARD IF GUESSED CORRECT
-            # if self.BTCPercentChange > 1.5:
-            #     self.reward += 0.1
-
-        if self.actionReceived == 2:
-            self.guessDownCnt += 1
-            self.fiatMoneyInvested = 0
-
-        if self.actionReceived == 3:
             self.guessSkipCnt += 1
 
-        # ----------------------------------------  UPDATE BALANCE  ---------------------------------------------
-        self.cashBalance = round((self.cashBalance), 4)
-        self.BTC_Balance = round((self.BTC_Balance), 8)
-        self.fullBalance = round((self.cashBalance + (self.BTC_Balance * self.btcDuringAction)), 4)
-        
-        # ----------------------------------------  CALCULATE PROFIT  ---------------------------------------------
-        self.profitDuringAction = self.fullBalance - self.initialBalance
+
+        # ----------------------------------------  JUDGE ACTION ----------------------------------------
+        if self.BTCPercentChange > 0.1:
+            if self.actionReceived == 1:
+                self.reward = 1
+            if self.actionReceived == 2:
+                self.reward = -1
+            if self.actionReceived == 3:
+                self.reward = 0
+
+        if self.BTCPercentChange < -0.1:
+            if self.actionReceived == 1:
+                self.reward = -1
+            if self.actionReceived == 2:
+                self.reward = 1
+            if self.actionReceived == 3:
+                self.reward = 0
 
 
+
+        if self.BTCPercentChange < 0.1 and self.BTCPercentChange > -0.1:
+            self.reward = 0
+
+        self.profitDuringAction = self.profitForState
+
+        self.rewardSum += self.reward
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
             self.done = True
@@ -245,10 +237,14 @@ class PlayGame(object):
             #print("END")
             self.gamesPlayedCnt += 1
 
+        # print("BTCPercentChange", self.BTCPercentChange)
+        # print("reward", self.reward)
+        # # print("profit", self.profitForState)
+        # print("\n")
 
         # ONE HOUR LATER
         # --------------------------- ADD NEW ROW DATA AND FORGET PREVIOUS ----------------------------
-        self.btcDuringAction = self.btcForState
+        self.btcPresent = self.btcFuture
 
         self.endIndex = self.endIndex - 1
         self.endDate = self.df_BTC.index[self.endIndex]
@@ -261,17 +257,13 @@ class PlayGame(object):
         self.df_segment_ETH = pd.concat([self.nextRow_ETH, self.df_segment_ETH])
         self.df_segment_ETH = self.df_segment_ETH.drop(self.df_segment_ETH.index[len(self.df_segment_ETH) - 1])
 
-        self.btcForState = self.nextRow_BTC["Close"][0]
+        self.btcFuture = self.nextRow_BTC["Close"][0]
 
 
         # ----------------------------------------  CALCULATE PROFIT  ---------------------------------------------
-        self.fullBalance = round((self.cashBalance + (self.BTC_Balance * self.btcForState)), 4)
+        self.fullBalance = round((self.cashBalance + (self.BTC_Balance * self.btcFuture)), 4)
         self.profitForState = self.fullBalance - self.initialBalance
 
-
-        # ----------------------------------------  CALCULATE PERCENTAGE CHANGE ----------------------------------------
-        BTCPercentGainLoss = (self.btcForState / self.btcDuringAction)
-        self.BTCPercentChange = -1 * (np.round((100 - (BTCPercentGainLoss * 100)), 4))
 
         # A better way to reward!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if self.fiatMoneyInvested == 0:
@@ -280,43 +272,25 @@ class PlayGame(object):
             self.percentProfitReward = (self.profitForState / self.fiatMoneyInvested) * 100
 
 
-        # ----------------------------------------  JUDGE ACTION ----------------------------------------
-        if self.actionReceived == 1:
-            self.reward = 0
-
-        if self.actionReceived == 2:
-            self.reward = self.profitForState
-            self.initialBalance = self.fullBalance
-
-            self.profitSum += self.profitForState
-            self.rewardSum += self.reward
-
-        if self.actionReceived == 3:
-            self.reward = 0
-
         if self.done == True:
-            self.reward = self.profitForState
             self.profitSum += self.profitForState
-            self.rewardSum += self.reward
+            #self.rewardSum += self.reward
 
-
-        #print("reward", self.reward)
-        #print("profit", self.reward)
-        #print("\n")
+        self.previousPercentProfitReward = self.percentProfitReward
 
         # --------------------- ACTION LOG ----------------------
         if self.actionLogOn == True:
             if self.actionReceived == 1:
-                bought = self.btcDuringAction
+                bought = self.btcPresent
                 sold = 0
             if self.actionReceived == 2:
                 bought = 0
-                sold = self.btcDuringAction
+                sold = self.btcPresent
             if self.actionReceived == 3:
                 bought = 0
                 sold = 0
             self.aLogCnt += 1
-            self.df_actionLog.loc[self.aLogCnt] = self.btcDuringAction, bought, sold
+            self.df_actionLog.loc[self.aLogCnt] = self.btcPresent, bought, sold
             self.df_actionLog.to_csv(self.actionLogPathName, index=True)
 
         # ------------------------------------------  WRITE EVALUATION LOG  ------------------------------------------
@@ -496,10 +470,10 @@ def HourLater(action):
     if restart == True:
         restart = False
         plt.style.use('seaborn')
-        # df_segment_BTC = test.getChartData()
-        # plt.imshow(df_segment_BTC, cmap='hot')
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+        df_segment_BTC = test.getChartData()
+        plt.imshow(df_segment_BTC, cmap='hot')
+        # data = test.getCurrentData()
+        # plot(data, "-", color='g', linewidth=1)
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
         buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
@@ -530,11 +504,11 @@ def HourLater(action):
         cnt += 1
         df.to_csv("Human_Trader_Log.csv", index=True)
 
-        # df_segment_BTC = test.getChartData()
-        # plt.imshow(df_segment_BTC, cmap='hot')
+        df_segment_BTC = test.getChartData()
+        plt.imshow(df_segment_BTC, cmap='hot')
 
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+        # data = test.getCurrentData()
+        # plot(data, "-", color='g', linewidth=1)
 
         dollMeter = plt.axes([0.9, 0.7, 0.1, 0.075])
         dollText = TextBox(dollMeter, 'Dollar', color='grey', initial=test.getCash())
@@ -561,10 +535,9 @@ def HourLater(action):
 
     else:
         chart, r_t, terminal = test.nextStep(action)
-        #printBalances()
-        # plt.imshow(chart, cmap='hot')
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+
+        df_segment_BTC = test.getChartData()
+        plt.imshow(chart, cmap='hot')
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
         buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
@@ -611,12 +584,11 @@ def _skip(event):
 
 def newGame():
     test.startGame()
-    #df_segment_BTC = test.getChartData()
-    #plt.imshow(df_segment_BTC, cmap='hot')
+    df_segment_BTC = test.getChartData()
+    plt.imshow(df_segment_BTC, cmap='hot')
 
-    data = test.getCurrentData()
-    #print(data)
-    plot(data, "-", color='g', linewidth=1)
+    # data = test.getCurrentData()
+    # plot(data, "-", color='g', linewidth=1)
 
     buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
     buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')

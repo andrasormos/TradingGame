@@ -8,7 +8,6 @@ import pandas as pd
 
 client = gdax.PublicClient()
 
-
 # GENERATE NEW CSV
 df_BTC = pd.DataFrame(columns=["Date", "Close"])
 df_ETH = pd.DataFrame(columns=["Date", "Close"])

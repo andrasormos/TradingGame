@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -95,19 +95,19 @@ class DQN:
         self.conv1 = tf.layers.conv2d(
             inputs=self.inputscaled, filters=32, kernel_size=[8, 8], strides=4,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv1')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv1')
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64, kernel_size=[4, 4], strides=2,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv2')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv2')
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64, kernel_size=[3, 3], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv3')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv3')
         self.conv4 = tf.layers.conv2d(
             inputs=self.conv3, filters=hidden, kernel_size=[7, 7], strides=1,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
-            padding="valid", activation=tf.nn.relu, use_bias=False, name='conv4')
+            padding="same", activation=tf.nn.relu, use_bias=False, name='conv4')
 
         # Splitting into value and advantage stream
         self.valuestream, self.advantagestream = tf.split(self.conv4, 2, 3)
@@ -201,26 +201,7 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        choice = sess.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})
-        QValues = sess.run(main_dqn.q_values, feed_dict={main_dqn.input: [state]})
-        highestQValue = QValues[0][choice]
-
-        predBuy = QValues[0][1]
-        predSell = QValues[0][2]
-        predBoth = []
-        predBoth.append(predBuy)
-        predBoth.append(predSell)
-
-        diff = np.absolute(predBuy - predSell)
-
-        ceiling = np.amax(predBoth)
-        floor = np.amin(predBoth)
-        percentDiff = np.absolute(1 - (ceiling / floor))
-
-        if percentDiff < 0.035:
-            actionToTake = 0
-        else:
-            actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
+        actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
         #print("actionToTake", actionToTake)
 
@@ -475,13 +456,11 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "050_eval"
-this = "game_engines.GameEngine_v"
-from game_engines.GE_v049 import PlayGame
+from game_engines.game_versions.GE_v048 import PlayGame
 
 GE = PlayGame()
 
-
+logNr = "048D"
 GE.defineLogNr(logNr)
 
 # Control parameters
@@ -651,7 +630,10 @@ def train():
                 # Fire (action 1), when a life was lost or the game just started,
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
-                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
+                action = action_getter.get_action(sess, frame_number,
+                                                                               atari.state,
+                                                                               MAIN_DQN,
+                                                                               evaluation=True)
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward
@@ -732,8 +714,8 @@ else:
             os.makedirs(gif_path, exist_ok=True)
 
             if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = "outputs/output_048C/"
-                save_file = "my_model-128256.meta"
+                trained_path = "output/"
+                save_file = "my_model-1643597.meta"
 
             elif ENV_NAME == 'PongDeterministic-v4':
                 trained_path = "trained/pong/"

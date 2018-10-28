@@ -35,7 +35,7 @@ class PlayGame(object):
         self.df_evalLog = pd.DataFrame(columns=["rewardSum", "profitSum", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt", "eps", "frame"])
         self.df_evalOverfitLog = pd.DataFrame(columns=["rewardSum", "profitSum", "guessUpCnt", "guessDownCnt", "guessSkipCnt", "guessCnt", "eps", "frame"])
 
-        self.actionLogOn = True
+        self.actionLogOn = False
         self.df_actionLog = pd.DataFrame(columns=["BTCPrice", "bought", "sold"])
         self.logNr = ""
         self.evalType = "evalTrain"
@@ -112,6 +112,7 @@ class PlayGame(object):
         self.guessCnt = 0
 
         self.percentProfitReward = 0
+        self.previousPercentProfitReward = 0
         self.rewardList = []
         self.guessOutcome = 0
 
@@ -199,7 +200,6 @@ class PlayGame(object):
                 self.BTC_Balance = amountOfBTCBought
                 self.cashBalance = self.cashBalance - (self.fiatToTrade)
 
-        # FIX THIS ASWELL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if action == 2:
             self.actionReceived = 2
             tradingFeeBTC = self.BTC_Balance * 0.000000001
@@ -280,12 +280,14 @@ class PlayGame(object):
             self.percentProfitReward = (self.profitForState / self.fiatMoneyInvested) * 100
 
 
+
+
         # ----------------------------------------  JUDGE ACTION ----------------------------------------
         if self.actionReceived == 1:
             self.reward = 0
 
         if self.actionReceived == 2:
-            self.reward = self.profitForState
+            self.reward = self.previousPercentProfitReward
             self.initialBalance = self.fullBalance
 
             self.profitSum += self.profitForState
@@ -294,15 +296,27 @@ class PlayGame(object):
         if self.actionReceived == 3:
             self.reward = 0
 
+
+        # punish if we are too much in negative profit
+        if self.percentProfitReward < -1:
+            self.reward = self.reward + (self.percentProfitReward * 0.2)
+
+        if self.percentProfitReward < -2.5:
+            self.reward = self.reward + (self.percentProfitReward * 0.5)
+
+
+
         if self.done == True:
-            self.reward = self.profitForState
+            self.reward = self.percentProfitReward
             self.profitSum += self.profitForState
             self.rewardSum += self.reward
 
+        self.previousPercentProfitReward = self.percentProfitReward
 
-        #print("reward", self.reward)
-        #print("profit", self.reward)
-        #print("\n")
+        # print("ball y", self.percentProfitReward)
+        # print("reward", self.reward)
+        # print("profit", self.profitForState)
+        # print("\n")
 
         # --------------------- ACTION LOG ----------------------
         if self.actionLogOn == True:
@@ -496,10 +510,10 @@ def HourLater(action):
     if restart == True:
         restart = False
         plt.style.use('seaborn')
-        # df_segment_BTC = test.getChartData()
-        # plt.imshow(df_segment_BTC, cmap='hot')
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+        df_segment_BTC = test.getChartData()
+        plt.imshow(df_segment_BTC, cmap='hot')
+        # data = test.getCurrentData()
+        # plot(data, "-", color='g', linewidth=1)
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
         buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
@@ -530,11 +544,11 @@ def HourLater(action):
         cnt += 1
         df.to_csv("Human_Trader_Log.csv", index=True)
 
-        # df_segment_BTC = test.getChartData()
-        # plt.imshow(df_segment_BTC, cmap='hot')
+        df_segment_BTC = test.getChartData()
+        plt.imshow(df_segment_BTC, cmap='hot')
 
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+        # data = test.getCurrentData()
+        # plot(data, "-", color='g', linewidth=1)
 
         dollMeter = plt.axes([0.9, 0.7, 0.1, 0.075])
         dollText = TextBox(dollMeter, 'Dollar', color='grey', initial=test.getCash())
@@ -561,10 +575,9 @@ def HourLater(action):
 
     else:
         chart, r_t, terminal = test.nextStep(action)
-        #printBalances()
-        # plt.imshow(chart, cmap='hot')
-        data = test.getCurrentData()
-        plot(data, "-", color='g', linewidth=1)
+
+        df_segment_BTC = test.getChartData()
+        plt.imshow(chart, cmap='hot')
 
         buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
         buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')
@@ -611,12 +624,11 @@ def _skip(event):
 
 def newGame():
     test.startGame()
-    #df_segment_BTC = test.getChartData()
-    #plt.imshow(df_segment_BTC, cmap='hot')
+    df_segment_BTC = test.getChartData()
+    plt.imshow(df_segment_BTC, cmap='hot')
 
-    data = test.getCurrentData()
-    #print(data)
-    plot(data, "-", color='g', linewidth=1)
+    # data = test.getCurrentData()
+    # plot(data, "-", color='g', linewidth=1)
 
     buyCom = plt.axes([0.9, 0.2, 0.1, 0.075])
     buyButt = Button(buyCom, 'UP', color='red', hovercolor='green')

@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -14,7 +14,7 @@ If you have questions or suggestions, write me a mail fabiograetzatgooglemaildot
 """
 import os
 import random
-import gym
+#import gym
 import tensorflow as tf
 import numpy as np
 import imageio
@@ -22,6 +22,7 @@ from skimage.transform import resize
 
 gameMode = "notatari"
 action_space = 3
+epsilon = 0
 
 class ProcessFrame:
     """Resizes and converts RGB Atari frames to grayscale"""
@@ -148,6 +149,8 @@ class ActionGetter:
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
                  replay_memory_start_size=50000, max_frames=25000000):
+
+        # 1 000 000
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -163,6 +166,7 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
+        self.currentEpsilon = 0
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
@@ -180,6 +184,7 @@ class ActionGetter:
         self.intercept_2 = self.eps_final_frame - self.slope_2 * self.max_frames
 
     def get_action(self, session, frame_number, state, main_dqn, evaluation=False):
+        global epsilon
         """
         Args:
             session: A tensorflow session object
@@ -192,6 +197,7 @@ class ActionGetter:
         """
         if evaluation:
             eps = self.eps_evaluation
+            #epsilon = self.slope * frame_number + self.intercept
         elif frame_number < self.replay_memory_start_size:
             eps = self.eps_initial
         elif frame_number >= self.replay_memory_start_size and frame_number < self.replay_memory_start_size + self.eps_annealing_frames:
@@ -202,11 +208,17 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
+        if not evaluation:
+            self.currentEpsilon = eps
+
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
 
         #print("actionToTake", actionToTake)
 
         return actionToTake
+
+    def findEpsilon(self):
+        return self.currentEpsilon
 
 
 class ReplayMemory:
@@ -384,7 +396,7 @@ class Atari:
     """Wrapper for the environment provided by gym"""
 
     def __init__(self, envName, no_op_steps=10, agent_history_length=4):
-        self.env = gym.make(envName)
+        #self.env = gym.make(envName)
         self.frame_processor = ProcessFrame()
         self.state = None
         self.last_lives = 0
@@ -402,7 +414,7 @@ class Atari:
         if gameMode == "atari":
             frame = self.env.reset()
         else:
-            GE.startGame(False)
+            GE.startGame()
             frame = GE.getChartData()
 
         self.last_lives = 0
@@ -415,7 +427,7 @@ class Atari:
                     frame, _, _, _ = self.env.step(1)  # Action 'Fire'
             else:
                 for _ in range(random.randint(1, self.no_op_steps)):
-                    GE.startGame(True)
+                    GE.startGame()
                     #frame = GE.getChartData()
                     frame, _, _ = GE.nextStep(3)
 
@@ -457,19 +469,17 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "055C"
-modelName = "my_model-1370736.meta"
-modelPath = "outputs/output_054/"
-from game_engines.GE_v054 import PlayGame
+logNr = "059E"
+modelName = "my_model-192384.meta"
+modelPath = "outputs/output_059/"
+from game_engines.game_versions.GE_v059 import PlayGame
 
 GE = PlayGame()
-
-
 GE.defineLogNr(logNr)
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 3000          # Number of frames the agent sees between evaluations 200 000
+EVAL_FREQUENCY = 8000          # Number of frames the agent sees between evaluations 200 000
 EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
@@ -503,7 +513,7 @@ SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
 
 atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
+#print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
 
 # main DQN and target DQN networks:
 with tf.variable_scope('mainDQN'):
@@ -542,12 +552,11 @@ PARAM_SUMMARIES = tf.summary.merge(ALL_PARAM_SUMMARIES)
 
 
 def train():
+    global epsilon
     """Contains the training and evaluation loops"""
     my_replay_memory = ReplayMemory(size=MEMORY_SIZE, batch_size=BS)  # (★)
     network_updater = TargetNetworkUpdater(MAIN_DQN_VARS, TARGET_DQN_VARS)
-    action_getter = ActionGetter(action_space,
-                                 replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                 max_frames=MAX_FRAMES)
+    action_getter = ActionGetter(action_space, replay_memory_start_size=REPLAY_MEMORY_START_SIZE, max_frames=MAX_FRAMES)
 
     with tf.Session() as sess:
         sess.run(init)
@@ -556,12 +565,19 @@ def train():
         rewards = []
         loss_list = []
 
+        doEvalType = "evalTrain"
+        GE.setEvalType(doEvalType)
+
+
         while frame_number < MAX_FRAMES:
 
             ########################
             ####### Training #######
             ########################
             epoch_frame = 0
+            doEvalType = "evalTrain"
+            GE.setEvalType(doEvalType)
+
             while epoch_frame < EVAL_FREQUENCY:
                 terminal_life_lost = atari.reset(sess)
                 episode_reward_sum = 0
@@ -578,14 +594,10 @@ def train():
                     episode_reward_sum += reward
 
                     # (7★) Store transition in the replay memory
-                    my_replay_memory.add_experience(action=action,
-                                                    frame=processed_new_frame[:, :, 0],
-                                                    reward=reward,
-                                                    terminal=terminal_life_lost)
+                    my_replay_memory.add_experience(action=action, frame=processed_new_frame[:, :, 0], reward=reward, terminal=terminal_life_lost)
 
                     if frame_number % UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
-                        loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN,
-                                     BS, gamma=DISCOUNT_FACTOR)  # (8★)
+                        loss = learn(sess, my_replay_memory, MAIN_DQN, TARGET_DQN, BS, gamma=DISCOUNT_FACTOR)  # (8★)
                         loss_list.append(loss)
                     if frame_number % NETW_UPDATE_FREQ == 0 and frame_number > REPLAY_MEMORY_START_SIZE:
                         network_updater.update_networks(sess)  # (9★)
@@ -600,9 +612,7 @@ def train():
                 if len(rewards) % 10 == 0:
                     # Scalar summaries for tensorboard
                     if frame_number > REPLAY_MEMORY_START_SIZE:
-                        summ = sess.run(PERFORMANCE_SUMMARIES,
-                                        feed_dict={LOSS_PH: np.mean(loss_list),
-                                                   REWARD_PH: np.mean(rewards[-100:])})
+                        summ = sess.run(PERFORMANCE_SUMMARIES, feed_dict={LOSS_PH: np.mean(loss_list), REWARD_PH: np.mean(rewards[-100:])})
 
                         SUMM_WRITER.add_summary(summ, frame_number)
                         loss_list = []
@@ -615,6 +625,67 @@ def train():
                     #     print(len(rewards), frame_number,
                     #           np.mean(rewards[-100:]), file=reward_file)
 
+
+            ########################
+            ###### Evaluation ######
+            ########################
+            terminal = True
+            gif = False
+            frameEpsGetter = True
+            frames_for_gif = []
+            eval_rewards = []
+            evaluate_frame_number = 0
+
+            doEvalType = "evalReal"
+            GE.setEvalType(doEvalType)
+            print("EPSILON", epsilon)
+
+            for _ in range(EVAL_STEPS):
+                if terminal:
+                    terminal_life_lost = atari.reset(sess, evaluation=True)
+                    episode_reward_sum = 0
+                    terminal = False
+
+                # Fire (action 1), when a life was lost or the game just started,
+                # so that the agent does not stand around doing nothing. When playing
+                # with other environments, you might want to change this...
+                action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
+
+                if frameEpsGetter == True:
+                    epsilon = action_getter.findEpsilon()
+                    GE.setFrameNumber(frame_number)
+                    GE.setEpsilon(epsilon)
+                    frameEpsGetter = False
+
+                processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
+                evaluate_frame_number += 1
+                episode_reward_sum += reward
+
+                if gif:
+                    frames_for_gif.append(new_frame)
+                if terminal:
+                    eval_rewards.append(episode_reward_sum)
+                    gif = False  # Save only the first game of the evaluation as a gif
+
+            print("Evaluation score:\n", np.mean(eval_rewards))
+            # try:
+            #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
+            # except IndexError:
+            #     print("No evaluation game finished")
+
+
+            # Save the network parameters
+            saver.save(sess, PATH + '/my_model', global_step=frame_number)
+            frames_for_gif = []
+
+            # Show the evaluation score in tensorboard
+            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
+            # SUMM_WRITER.add_summary(summ, frame_number)
+            # with open('rewardsEval.dat', 'a') as eval_reward_file:
+            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
+
+
+
             ########################
             ###### Evaluation ######
             ########################
@@ -623,6 +694,9 @@ def train():
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
+
+            doEvalType = "evalOverfit"
+            GE.setEvalType(doEvalType)
 
             for _ in range(EVAL_STEPS):
                 if terminal:
@@ -645,20 +719,7 @@ def train():
                     gif = False  # Save only the first game of the evaluation as a gif
 
             print("Evaluation score:\n", np.mean(eval_rewards))
-            # try:
-            #     generate_gif(frame_number, frames_for_gif, eval_rewards[0], PATH)
-            # except IndexError:
-            #     print("No evaluation game finished")
 
-            # Save the network parameters
-            saver.save(sess, PATH + '/my_model', global_step=frame_number)
-            frames_for_gif = []
-
-            # Show the evaluation score in tensorboard
-            # summ = sess.run(EVAL_SCORE_SUMMARY, feed_dict={EVAL_SCORE_PH: np.mean(eval_rewards)})
-            # SUMM_WRITER.add_summary(summ, frame_number)
-            # with open('rewardsEval.dat', 'a') as eval_reward_file:
-            #     print(frame_number, np.mean(eval_rewards), file=eval_reward_file)
 
 if TRAIN:
     train()
@@ -724,6 +785,8 @@ else:
             action_getter = ActionGetter(action_space,
                                          replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                          max_frames=MAX_FRAMES)
+            doEvalType = "evalReal"
+            GE.setEvalType(doEvalType)
 
             with tf.Session() as sess:
                 saver = tf.train.import_meta_graph(trained_path + save_file)

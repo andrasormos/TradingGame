@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -469,10 +469,10 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "061E"
+logNr = "063"
 modelName = "my_model-1523040.meta"
 modelPath = "outputs/output_061/"
-from game_engines.GE_v061 import PlayGame
+from game_engines.GE_v063 import PlayGame
 
 GE = PlayGame()
 GE.defineLogNr(logNr)

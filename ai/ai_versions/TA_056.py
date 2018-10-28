@@ -1,8 +1,8 @@
-# TRAIN = True
-# TEST = False
+TRAIN = True
+TEST = False
 
-TRAIN = False
-TEST = True
+# TRAIN = False
+# TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -14,7 +14,7 @@ If you have questions or suggestions, write me a mail fabiograetzatgooglemaildot
 """
 import os
 import random
-#import gym
+import gym
 import tensorflow as tf
 import numpy as np
 import imageio
@@ -149,8 +149,6 @@ class ActionGetter:
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
                  eps_evaluation=0.0, eps_annealing_frames=1000000,
                  replay_memory_start_size=50000, max_frames=25000000):
-
-        # 1 000 000
         """
         Args:
             n_actions: Integer, number of possible actions
@@ -166,7 +164,6 @@ class ActionGetter:
                 which the agent only explores
             max_frames: Integer, Total number of frames shown to the agent
         """
-        self.currentEpsilon = 0
         self.n_actions = n_actions
         self.eps_initial = eps_initial
         self.eps_final = eps_final
@@ -208,17 +205,11 @@ class ActionGetter:
         if np.random.rand(1) < eps:
             return np.random.randint(0, self.n_actions)
 
-        if not evaluation:
-            self.currentEpsilon = eps
-
         actionToTake = session.run(main_dqn.best_action, feed_dict={main_dqn.input: [state]})[0]
-
+        epsilon = eps
         #print("actionToTake", actionToTake)
 
         return actionToTake
-
-    def findEpsilon(self):
-        return self.currentEpsilon
 
 
 class ReplayMemory:
@@ -396,7 +387,7 @@ class Atari:
     """Wrapper for the environment provided by gym"""
 
     def __init__(self, envName, no_op_steps=10, agent_history_length=4):
-        #self.env = gym.make(envName)
+        self.env = gym.make(envName)
         self.frame_processor = ProcessFrame()
         self.state = None
         self.last_lives = 0
@@ -469,10 +460,10 @@ class Atari:
 
 tf.reset_default_graph()
 
-logNr = "061E"
-modelName = "my_model-1523040.meta"
-modelPath = "outputs/output_061/"
-from game_engines.GE_v061 import PlayGame
+logNr = "056B"
+modelName = "my_model-1370736.meta"
+modelPath = "outputs/output_054/"
+from game_engines.game_versions.GE_v056 import PlayGame
 
 GE = PlayGame()
 GE.defineLogNr(logNr)
@@ -500,7 +491,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001        # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00025        # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 
@@ -513,7 +504,7 @@ SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
 
 atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-#print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
+print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
 
 # main DQN and target DQN networks:
 with tf.variable_scope('mainDQN'):
@@ -567,7 +558,7 @@ def train():
 
         doEvalType = "evalTrain"
         GE.setEvalType(doEvalType)
-
+        GE.setEpsilon(epsilon)
 
         while frame_number < MAX_FRAMES:
 
@@ -577,6 +568,7 @@ def train():
             epoch_frame = 0
             doEvalType = "evalTrain"
             GE.setEvalType(doEvalType)
+            GE.setFrameNumber(frame_number)
 
             while epoch_frame < EVAL_FREQUENCY:
                 terminal_life_lost = atari.reset(sess)
@@ -631,14 +623,13 @@ def train():
             ########################
             terminal = True
             gif = False
-            frameEpsGetter = True
             frames_for_gif = []
             eval_rewards = []
             evaluate_frame_number = 0
 
             doEvalType = "evalReal"
             GE.setEvalType(doEvalType)
-            print("EPSILON", epsilon)
+            GE.setFrameNumber(frame_number)
 
             for _ in range(EVAL_STEPS):
                 if terminal:
@@ -650,13 +641,6 @@ def train():
                 # so that the agent does not stand around doing nothing. When playing
                 # with other environments, you might want to change this...
                 action = action_getter.get_action(sess, frame_number, atari.state, MAIN_DQN, evaluation=True)
-
-                if frameEpsGetter == True:
-                    epsilon = action_getter.findEpsilon()
-                    GE.setFrameNumber(frame_number)
-                    GE.setEpsilon(epsilon)
-                    frameEpsGetter = False
-
                 processed_new_frame, reward, terminal, terminal_life_lost, new_frame = atari.step(sess, action)
                 evaluate_frame_number += 1
                 episode_reward_sum += reward
@@ -697,6 +681,7 @@ def train():
 
             doEvalType = "evalOverfit"
             GE.setEvalType(doEvalType)
+            GE.setFrameNumber(frame_number)
 
             for _ in range(EVAL_STEPS):
                 if terminal:
@@ -785,8 +770,6 @@ else:
             action_getter = ActionGetter(action_space,
                                          replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
                                          max_frames=MAX_FRAMES)
-            doEvalType = "evalReal"
-            GE.setEvalType(doEvalType)
 
             with tf.Session() as sess:
                 saver = tf.train.import_meta_graph(trained_path + save_file)
