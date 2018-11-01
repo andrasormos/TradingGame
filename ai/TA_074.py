@@ -21,7 +21,7 @@ import imageio
 from skimage.transform import resize
 
 gameMode = "notatari"
-action_space = 2
+action_space = 3
 epsilon = 0
 
 
@@ -67,7 +67,7 @@ class ProcessFrame:
 
         return processedFrame
 
-logNr = "073"
+logNr = "074"
 resolution = 84
 
 class DQN:
@@ -76,7 +76,7 @@ class DQN:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, n_actions, hidden=512, learning_rate=0.00001,
+    def __init__(self, n_actions, hidden=1024, learning_rate=0.00001,
                  frame_height=resolution, frame_width=resolution, agent_history_length=4):
         conv1f = 32
         conv1k = 8
@@ -176,7 +176,7 @@ class ActionGetter:
     """Determines an action according to an epsilon greedy strategy with annealing epsilon"""
 
     def __init__(self, n_actions, eps_initial=1, eps_final=0.1, eps_final_frame=0.01,
-                 eps_evaluation=0.0, eps_annealing_frames=1000000,
+                 eps_evaluation=0.0, eps_annealing_frames=20000000,
                  replay_memory_start_size=50000, max_frames=25000000):
 
         # 1 000 000
@@ -502,14 +502,14 @@ tf.reset_default_graph()
 #logNr = "069"
 modelName = "my_model-1523040.meta"
 modelPath = "outputs/output_065/"
-from GE_v073 import PlayGame
+from game_engines.GE_v074 import PlayGame
 
 GE = PlayGame()
 GE.defineLogNr(logNr)
 
 # Control parameters
 MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 8000          # Number of frames the agent sees between evaluations 200 000
+EVAL_FREQUENCY = 20000          # Number of frames the agent sees between evaluations 200 000
 EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
 NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
                                  # According to Mnih et al. 2015 this is measured in the number of
@@ -530,7 +530,7 @@ HIDDEN = 1024                    # Number of filters in the final convolutional 
                                  # (1,1,512). This is slightly different from the original
                                  # implementation but tests I did with the environment Pong
                                  # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00001     # Set to 0.00025 in Pong for quicker results.
+LEARNING_RATE = 0.00025     # Set to 0.00025 in Pong for quicker results.
                                  # Hessel et al. 2017 used 0.0000625
 BS = 32                          # Batch size
 

@@ -23,10 +23,10 @@ print(output, "\n")
 # print("get_trades()")
 # print(output, "\n")
 
-#output = client.get_historic_rates(gdax.BTC_GBP, "2018-10-01", "2018-10-07", granularity=3600)
-# output = client.get_historic_rates(gdax.BTC_GBP, "2018-10-07T16:00:00", "2018-10-07T20:00:00", granularity=3600)
-# print("get_historic_rates()")
-# print(output, "\n")
+#output = client.get_historic_rates(gdax.BTC_GBP, "2018-10-30", "2018-10-30", granularity=3600)
+output = client.get_historic_rates(gdax.BTC_GBP, "2018-10-30T07:00:00", "2018-10-30T08:00:00", granularity=3600)
+print("get_historic_rates()")
+print(output, "\n")
 #
 # close = np.asarray(output)
 # temp = close[:, [4]]

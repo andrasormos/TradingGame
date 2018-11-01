@@ -1,5 +1,5 @@
 
-from ai.ai_versions.Trader_AI_v003_decider import Predictor
+from TA_078_decider import Predictor
 ChrisMarshall = Predictor()
 
 

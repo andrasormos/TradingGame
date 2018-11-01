@@ -503,7 +503,7 @@ tf.reset_default_graph()
 #logNr = "069"
 modelName = "my_model-1523040.meta"
 modelPath = "outputs/output_065/"
-from GE_v070 import PlayGame
+from game_engines.GE_v070 import PlayGame
 
 GE = PlayGame()
 GE.defineLogNr(logNr)

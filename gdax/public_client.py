@@ -22,6 +22,7 @@ class PublicClient(object):
     LTC_BTC = "LTC-BTC"
     LTC_EUR = "LTC-EUR"
     LTC_USD = "LTC-USD"
+    ETH_GBP = "ETH-GBP"
 
     def __init__(self, api_url='https://api.gdax.com', timeout=30):
         """Create GDAX API public client.

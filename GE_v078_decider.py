@@ -17,14 +17,18 @@ np.set_printoptions(threshold=np.nan, linewidth=300)
 class PlayGame(object):
     def __init__(self):
         self.prediction = False
-        dateParse = lambda x: pd.datetime.strptime(x, "%Y-%m-%d %I-%p")
-        self.training_df_BTC = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_BTC = pd.read_csv("./new_crypto/Gdax_ETHUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.training_df_ETH = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_train.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
-        self.eval_df_ETH = pd.read_csv("./new_crypto/Gdax_BTCUSD_1h_close_eval.csv", parse_dates=["Date"], date_parser=dateParse, index_col=0)
+
+        self.training_df_ETH = pd.read_csv("./cryptoExtract/live/live_BTC_GBP.csv", index_col=0)
+        self.eval_df_ETH = pd.read_csv("./cryptoExtract/live/live_BTC_GBP.csv", index_col=0)
+
+        self.training_df_BTC = pd.read_csv("./cryptoExtract/live/live_ETH_USD.csv", index_col=0)
+        self.eval_df_BTC = pd.read_csv("./cryptoExtract/live/live_ETH_USD.csv", index_col=0)
+
         self.sma = 72
-        self.startDate = "itsempty"
-        self.endDate = "itsempty"
+        self.gameLength = 168  # How long the game should go on
+        self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
+        self.amountToSpend = 500  # How much to purchase crypto for
+        self.fiatToTrade = 100
         self.smaStartDate = "itsempty"
         self.smaEndDate = "itsempty"
         self.eLogCnt = 0
@@ -75,12 +79,7 @@ class PlayGame(object):
 
     def startGame(self):
         self.aLogCnt = 0
-
-        self.gameLength = 168  # How long the game should go on
-        self.timeFrame = 84  # How many data increment should be shown as history. Could be hours, months
-        self.amountToSpend = 500  # How much to purchase crypto for
         self.initialBalance = 10000  # Starting Money
-        self.fiatToTrade = 100
         self.cashBalance = self.initialBalance
         self.BTC_Balance = 0  # BTC to start with
 
@@ -95,22 +94,19 @@ class PlayGame(object):
             self.df_ETH = self.training_df_ETH
 
         self.dataSize = len(self.df_BTC.index)
-        self.startDate, self.endDate, self.smaStartDate, self.smaEndDate, self.startIndex, self.endIndex = self.randomChart()
-
-        # print("btcStartDate", self.startDate, "btcEndDate", self.endDate)
-        # print("smaStartDate", self.smaStartDate, "smaEndDate", self.smaEndDate)
+        self.startIndex, self.endIndex, self.smaStartIndex, self.smaEndIndex = self.randomChart()
 
         if self.evalType == "evalReal":
-            self.df_segment_BTC = self.df_BTC.loc[self.endDate: self.startDate]
-            self.df_segment_BTC_SMA = self.df_BTC.loc[self.smaStartDate: self.smaEndDate]
-            self.df_segment_ETH = self.df_ETH.loc[self.endDate: self.startDate]
-            self.df_segment_ETH_SMA = self.df_ETH.loc[self.smaStartDate: self.smaEndDate]
+            self.df_segment_BTC = self.df_BTC.loc[self.endIndex: self.startIndex]
+            self.df_segment_BTC_SMA = self.df_BTC.loc[self.smaEndIndex: self.smaStartIndex]
+            self.df_segment_ETH = self.df_ETH.loc[self.endIndex: self.startIndex]
+            self.df_segment_ETH_SMA = self.df_ETH.loc[self.smaEndIndex: self.smaStartIndex]
 
         elif self.evalType == "evalTrain" or "evalOverfit":
-            self.df_segment_BTC = self.df_BTC.loc[self.startDate: self.endDate]
-            self.df_segment_BTC_SMA = self.df_BTC.loc[self.smaStartDate: self.smaEndDate]
-            self.df_segment_ETH = self.df_ETH.loc[self.startDate: self.endDate]
-            self.df_segment_ETH_SMA = self.df_ETH.loc[self.smaStartDate: self.smaEndDate]
+            self.df_segment_BTC = self.df_BTC.loc[self.endIndex: self.startIndex]
+            self.df_segment_BTC_SMA = self.df_BTC.loc[self.smaEndIndex: self.smaStartIndex]
+            self.df_segment_ETH = self.df_ETH.loc[self.endIndex: self.startIndex]
+            self.df_segment_ETH_SMA = self.df_ETH.loc[self.smaEndIndex: self.smaStartIndex]
 
         self.sumProfit = 0
         self.guessUpCnt = 0
@@ -135,33 +131,22 @@ class PlayGame(object):
         self.profit = 0
 
     def randomChart(self):
-        startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 1 - self.sma))
+        startIndex = randint((self.timeFrame + self.gameLength), (self.dataSize - 2 - self.sma))
         endIndex = startIndex - self.timeFrame + 1
-
-        startDate = self.df_BTC.index[startIndex]
-        endDate = self.df_BTC.index[endIndex]
-
-        startDateStr = startDate.strftime("%Y-%m-%d %H:%M:%S")
-        endDateStr = endDate.strftime("%Y-%m-%d %H:%M:%S")
 
         smaStartIndex = startIndex + self.sma
         smaEndIndex = endIndex
-        smaStartDate = self.df_BTC.index[smaStartIndex]
-        smaEndDate = self.df_BTC.index[smaEndIndex]
-        smaStartDateStr = smaStartDate.strftime("%Y-%m-%d %H:%M:%S")
-        smaEndDateStr = smaEndDate.strftime("%Y-%m-%d %H:%M:%S")
 
-        return startDateStr, endDateStr, smaStartDateStr, smaEndDateStr, startIndex, endIndex
+        return startIndex, endIndex, smaStartIndex, smaEndIndex
 
     def nextStep(self, action):
-        hours = 8
+        hours = 24
         if self.cnt == 0:
             for i in range(hours):
                 self.priceActionMem.loc[i] = 0, 0
         self.cnt = self.cnt + 1
         
         # --------------------------- PRESENT TIME - JUDGE PAST ACTION  ----------------------------
-        
         reward = 0
         if self.cnt > hours:
             btcT0 = self.priceActionMem.price[0]
@@ -191,27 +176,22 @@ class PlayGame(object):
         # --------------------------- PROGRESS TO FUTURE  ----------------------------
         # --------------------------- ADD NEW ROW DATA AND FORGET PREVIOUS ----------------------------
         self.endIndex = self.endIndex - 1
-        self.endDate = self.df_BTC.index[self.endIndex]
+        self.nextRow_BTC = self.df_BTC.loc[[self.endIndex]]
 
-        self.nextRow_BTC = self.df_BTC.loc[[self.endDate]]
         self.df_segment_BTC = pd.concat([self.nextRow_BTC, self.df_segment_BTC])
         self.df_segment_BTC = self.df_segment_BTC.drop(self.df_segment_BTC.index[len(self.df_segment_BTC) - 1])
+        # print("DF SEGMENT")
+        # print(self.df_segment_BTC)
 
-        self.nextRow_ETH = self.df_ETH.loc[[self.endDate]]
+        self.nextRow_ETH = self.df_ETH.loc[[self.endIndex]]
         self.df_segment_ETH = pd.concat([self.nextRow_ETH, self.df_segment_ETH])
         self.df_segment_ETH = self.df_segment_ETH.drop(self.df_segment_ETH.index[len(self.df_segment_ETH) - 1])
 
         actionT0 = action
-        btcT0 = self.nextRow_BTC["Close"][0]
-
+        btcT0 = self.nextRow_BTC["Close"][self.endIndex]
         self.priceActionMem.price = self.priceActionMem.price.shift(1)
         self.priceActionMem.action = self.priceActionMem.action.shift(1)
         self.priceActionMem.loc[0] = btcT0, actionT0
-
-        # print("len",len(self.priceActionMem))
-        # #print(self.priceActionMem[2])
-        # print("reward", reward)
-        # print("\n")
 
         # -------------------------------------- GAME ENDS IF THESE ARE MET -------------------------------------------
         if self.cnt == self.gameLength:
@@ -308,23 +288,25 @@ class PlayGame(object):
 
         # -----------------  BTC  -----------------
         closes_BTC = self.df_segment_BTC["Close"]
-        roundedCloses = ['%.2f' % elem for elem in closes_BTC]
         closes_BTC = closes_BTC[::-1]
         close_data_together_BTC = list(np.round(scale_list(closes_BTC[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
         graph_close_BTC = close_data_together_BTC[0:PRICE_RANGE]
 
         # -----------------  ETH  -----------------
         closes_ETH = self.df_segment_ETH["Close"]
-        roundedCloses = ['%.2f' % elem for elem in closes_ETH]
         closes_ETH = closes_ETH[::-1]
         close_data_together_ETH = list(np.round(scale_list(closes_ETH[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
         graph_close_ETH = close_data_together_ETH[0:PRICE_RANGE]
 
         # -----------------  BTC SMA  -----------------
+
         btcSMA = self.df_segment_BTC_SMA["Close"].rolling(self.sma).mean()
+
+
         btcSMA = btcSMA[::-1]
         btcSMA = list(np.round(scale_list(btcSMA[timeFrame - timeFrame: timeFrame], 0, half_scale_size - 1), 0))
         btcSMA = btcSMA[0:PRICE_RANGE]
+
 
         # -----------------  ETH SMA  -----------------
         ethSMA = self.df_segment_ETH_SMA["Close"].rolling(self.sma).mean()
@@ -361,20 +343,26 @@ class PlayGame(object):
 
                 x_ind += 1
             blank_matrix_close = blank_matrix_close[::-1]
-            return  blank_matrix_close
+            return blank_matrix_close
+
 
         # -----------------  CREATE CHARTS  -----------------
         BTC = graphRender(graph_close_BTC)
         btcSMA = graphRender(btcSMA)
+
         ETH = graphRender(graph_close_ETH)
         ethSMA = graphRender(ethSMA)
 
         #-----------------  OVERLAY THEM  -----------------
         c = 255 - BTC
+        btcSMA = np.asarray(btcSMA)
+        BTC = np.asarray(BTC)
         np.putmask(btcSMA, c < btcSMA, c)
         BTC += btcSMA
 
         c = 255 - ETH
+        ethSMA = np.asarray(ethSMA)
+        ETH = np.asarray(ETH)
         np.putmask(ethSMA, c < ethSMA, c)
         ETH += ethSMA
 

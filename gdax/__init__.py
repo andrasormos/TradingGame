@@ -15,3 +15,4 @@ ETH_USD = PublicClient.ETH_USD
 LTC_BTC = PublicClient.LTC_BTC
 LTC_EUR = PublicClient.LTC_EUR
 LTC_USD = PublicClient.LTC_USD
+ETH_GBP = PublicClient.ETH_GBP

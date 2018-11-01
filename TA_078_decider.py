@@ -1,8 +1,8 @@
-TRAIN = True
-TEST = False
+# TRAIN = True
+# TEST = False
 
-# TRAIN = False
-# TEST = True
+TRAIN = False
+TEST = True
 
 ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -19,6 +19,7 @@ import tensorflow as tf
 import numpy as np
 import imageio
 from skimage.transform import resize
+from GE_v078_decider import PlayGame
 
 gameMode = "notatari"
 action_space = 3
@@ -67,8 +68,8 @@ class ProcessFrame:
 
         return processedFrame
 
-logNr = "069D"
-resolution = 48
+logNr = "077"
+resolution = 84
 
 class DQN:
     global resolution
@@ -76,26 +77,25 @@ class DQN:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, n_actions, hidden=512, learning_rate=0.00001,
+    def __init__(self, n_actions, hidden=1024, learning_rate=0.00001,
                  frame_height=resolution, frame_width=resolution, agent_history_length=4):
+        conv1f = 32
+        conv1k = 8
+        conv1s = 4
+        conv1p = "valid"
 
-        conv1f = 16
-        conv1k = 1
-        conv1s = 1
-        conv1p = "same"
-
-        conv2f = 32
+        conv2f = 64
         conv2k = 4
         conv2s = 2
-        conv2p = "same"
+        conv2p = "valid"
 
-        conv3f = 32
-        conv3k = 8
-        conv3s = 4
+        conv3f = 64
+        conv3k = 3
+        conv3s = 1
         conv3p = "valid"
 
         conv4f = 1024
-        conv4k = 5
+        conv4k = 7
         conv4s = 1
         conv4p = "valid"
 
@@ -498,88 +498,125 @@ class Atari:
 
         return processed_new_frame, reward, terminal, terminal_life_lost, new_frame
 
-tf.reset_default_graph()
 
-#logNr = "069"
-modelName = "my_model-1523040.meta"
-modelPath = "outputs/output_065/"
-from GE_v069 import PlayGame
+def setupVariables():
+    global MAX_EPISODE_LENGTH
+    global EVAL_FREQUENCY
+    global EVAL_STEPS
+    global NETW_UPDATE_FREQ
+    global DISCOUNT_FACTOR
+    global REPLAY_MEMORY_START_SIZE
+    global MAX_FRAMES
+    global MEMORY_SIZE
+    global NO_OP_STEPS
+    global UPDATE_FREQ
+    global HIDDEN
+    global LEARNING_RATE
+    global BS
+    global PATH
+    global SUMMARIES
+    global RUNID
+    global SUMM_WRITER
+    global atari
+    global MAIN_DQN
+    global TARGET_DQN
+    global init
+    global saver
+    global MAIN_DQN_VARS
+    global TARGET_DQN_VARS
+    global LAYER_IDS
+    global LOSS_PH
+    global LOSS_SUMMARY
+    global REWARD_PH
+    global REWARD_SUMMARY
+    global EVAL_SCORE_PH
+    global EVAL_SCORE_SUMMARY
+    global PERFORMANCE_SUMMARIES
+    global ALL_PARAM_SUMMARIES
+    global MAIN_DQN_KERNEL
+    global PARAM_SUMMARIES
+    tf.reset_default_graph()
 
-GE = PlayGame()
-GE.defineLogNr(logNr)
+    #logNr = "069"
+    modelName = "my_model-983808.meta"
+    modelPath = "outputs/output_073/"
 
-# Control parameters
-MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
-EVAL_FREQUENCY = 8000          # Number of frames the agent sees between evaluations 200 000
-EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
-NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
-                                 # According to Mnih et al. 2015 this is measured in the number of
-                                 # parameter updates (every four actions), however, in the
-                                 # DeepMind code, it is clearly measured in the number
-                                 # of actions the agent choses
-DISCOUNT_FACTOR = 0.99           # gamma in the Bellman equation
-REPLAY_MEMORY_START_SIZE = 50000 # Number of completely random actions,
-                                 # before the agent starts learning
-MAX_FRAMES = 30000000            # Total number of frames the agent sees
-MEMORY_SIZE = 1000000            # Number of transitions stored in the replay memory
-NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
-                                 # evaluation episode
-UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
-HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
-                                 # has the shape (1,1,1024) which is split into two streams. Both
-                                 # the advantage stream and value stream have the shape
-                                 # (1,1,512). This is slightly different from the original
-                                 # implementation but tests I did with the environment Pong
-                                 # have shown that this way the score increases more quickly
-LEARNING_RATE = 0.00025     # Set to 0.00025 in Pong for quicker results.
-                                 # Hessel et al. 2017 used 0.0000625
-BS = 32                          # Batch size
 
-PATH = "outputs/output_" + logNr + "/"                  # Gifs and checkpoints will be saved here
-SUMMARIES = "summaries"          # logdir for tensorboard
-RUNID = 'run_' + logNr
-os.makedirs(PATH, exist_ok=True)
-os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
-SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
+    GE = PlayGame()
+    GE.defineLogNr(logNr)
 
-atari = Atari(ENV_NAME, NO_OP_STEPS)
+    # Control parameters
+    MAX_EPISODE_LENGTH = 18000       # Equivalent of 5 minutes of gameplay at 60 frames per second
+    EVAL_FREQUENCY = 8000          # Number of frames the agent sees between evaluations 200 000
+    EVAL_STEPS = 1000                 # Number of frames for one evaluation #10000
+    NETW_UPDATE_FREQ = 10000         # Number of chosen actions between updating the target network.
+                                     # According to Mnih et al. 2015 this is measured in the number of
+                                     # parameter updates (every four actions), however, in the
+                                     # DeepMind code, it is clearly measured in the number
+                                     # of actions the agent choses
+    DISCOUNT_FACTOR = 0.99           # gamma in the Bellman equation
+    REPLAY_MEMORY_START_SIZE = 50000 # Number of completely random actions,
+                                     # before the agent starts learning
+    MAX_FRAMES = 30000000            # Total number of frames the agent sees
+    MEMORY_SIZE = 1000000            # Number of transitions stored in the replay memory
+    NO_OP_STEPS = 10                 # Number of 'NOOP' or 'FIRE' actions at the beginning of an
+                                     # evaluation episode
+    UPDATE_FREQ = 4                  # Every four actions a gradient descend step is performed
+    HIDDEN = 1024                    # Number of filters in the final convolutional layer. The output
+                                     # has the shape (1,1,1024) which is split into two streams. Both
+                                     # the advantage stream and value stream have the shape
+                                     # (1,1,512). This is slightly different from the original
+                                     # implementation but tests I did with the environment Pong
+                                     # have shown that this way the score increases more quickly
+    LEARNING_RATE = 0.00001     # Set to 0.00025 in Pong for quicker results.
+                                     # Hessel et al. 2017 used 0.0000625
+    BS = 32                          # Batch size
 
-#print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
+    PATH = "outputs/output_" + logNr + "/"                  # Gifs and checkpoints will be saved here
+    SUMMARIES = "summaries"          # logdir for tensorboard
+    RUNID = 'run_' + logNr
+    os.makedirs(PATH, exist_ok=True)
+    os.makedirs(os.path.join(SUMMARIES, RUNID), exist_ok=True)
+    SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
 
-# main DQN and target DQN networks:
-with tf.variable_scope('mainDQN'):
-    MAIN_DQN = DQN(action_space, HIDDEN, LEARNING_RATE)   # (★★)
-with tf.variable_scope('targetDQN'):
-    TARGET_DQN = DQN(action_space, HIDDEN)               # (★★)
+    atari = Atari(ENV_NAME, NO_OP_STEPS)
 
-init = tf.global_variables_initializer()
-saver = tf.train.Saver()
+    #print("The environment has the following {} actions: {}".format(action_space, atari.env.unwrapped.get_action_meanings()))
 
-MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
-TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
+    # main DQN and target DQN networks:
+    with tf.variable_scope('mainDQN'):
+        MAIN_DQN = DQN(action_space, HIDDEN, LEARNING_RATE)   # (★★)
+    with tf.variable_scope('targetDQN'):
+        TARGET_DQN = DQN(action_space, HIDDEN)               # (★★)
 
-LAYER_IDS = ["conv1", "conv2", "conv3", "conv4", "denseAdvantage",
-             "denseAdvantageBias", "denseValue", "denseValueBias"]
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
 
-# Scalar summaries for tensorboard: loss, average reward and evaluation score
-with tf.name_scope('Performance'):
-    LOSS_PH = tf.placeholder(tf.float32, shape=None, name='loss_summary')
-    LOSS_SUMMARY = tf.summary.scalar('loss', LOSS_PH)
-    REWARD_PH = tf.placeholder(tf.float32, shape=None, name='reward_summary')
-    REWARD_SUMMARY = tf.summary.scalar('reward', REWARD_PH)
-    EVAL_SCORE_PH = tf.placeholder(tf.float32, shape=None, name='evaluation_summary')
-    EVAL_SCORE_SUMMARY = tf.summary.scalar('evaluation_score', EVAL_SCORE_PH)
+    MAIN_DQN_VARS = tf.trainable_variables(scope='mainDQN')
+    TARGET_DQN_VARS = tf.trainable_variables(scope='targetDQN')
 
-PERFORMANCE_SUMMARIES = tf.summary.merge([LOSS_SUMMARY, REWARD_SUMMARY])
+    LAYER_IDS = ["conv1", "conv2", "conv3", "conv4", "denseAdvantage",
+                 "denseAdvantageBias", "denseValue", "denseValueBias"]
 
-# Histogramm summaries for tensorboard: parameters
-with tf.name_scope('Parameters'):
-    ALL_PARAM_SUMMARIES = []
-    for i, Id in enumerate(LAYER_IDS):
-        with tf.name_scope('mainDQN/'):
-            MAIN_DQN_KERNEL = tf.summary.histogram(Id, tf.reshape(MAIN_DQN_VARS[i], shape=[-1]))
-        ALL_PARAM_SUMMARIES.extend([MAIN_DQN_KERNEL])
-PARAM_SUMMARIES = tf.summary.merge(ALL_PARAM_SUMMARIES)
+    # Scalar summaries for tensorboard: loss, average reward and evaluation score
+    with tf.name_scope('Performance'):
+        LOSS_PH = tf.placeholder(tf.float32, shape=None, name='loss_summary')
+        LOSS_SUMMARY = tf.summary.scalar('loss', LOSS_PH)
+        REWARD_PH = tf.placeholder(tf.float32, shape=None, name='reward_summary')
+        REWARD_SUMMARY = tf.summary.scalar('reward', REWARD_PH)
+        EVAL_SCORE_PH = tf.placeholder(tf.float32, shape=None, name='evaluation_summary')
+        EVAL_SCORE_SUMMARY = tf.summary.scalar('evaluation_score', EVAL_SCORE_PH)
+
+    PERFORMANCE_SUMMARIES = tf.summary.merge([LOSS_SUMMARY, REWARD_SUMMARY])
+
+    # Histogramm summaries for tensorboard: parameters
+    with tf.name_scope('Parameters'):
+        ALL_PARAM_SUMMARIES = []
+        for i, Id in enumerate(LAYER_IDS):
+            with tf.name_scope('mainDQN/'):
+                MAIN_DQN_KERNEL = tf.summary.histogram(Id, tf.reshape(MAIN_DQN_VARS[i], shape=[-1]))
+            ALL_PARAM_SUMMARIES.extend([MAIN_DQN_KERNEL])
+    PARAM_SUMMARIES = tf.summary.merge(ALL_PARAM_SUMMARIES)
 
 
 def train():
@@ -799,48 +836,78 @@ if gameMode == "atari":
             generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
             print("Gif created, check the folder {}".format(gif_path))
 
-else:
-    if TEST:
-        for i in range(1000):
-            gif_path = "GIF/"
-            os.makedirs(gif_path, exist_ok=True)
+def predictNextHour():
+    global sess
+    for i in range(1):
+        gif_path = "GIF/"
+        os.makedirs(gif_path, exist_ok=True)
+        trained_path = "outputs/output_073/"
+        save_file = "my_model-983808.meta"
 
-            if ENV_NAME == 'BreakoutDeterministic-v4':
-                trained_path = modelPath
-                save_file = modelName
+        action_getter = ActionGetter(action_space,
+                                     replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
+                                     max_frames=MAX_FRAMES)
 
-            elif ENV_NAME == 'PongDeterministic-v4':
-                trained_path = "trained/pong/"
-                save_file = "my_model-3217770.meta"
+        print("running")
+        with tf.Session() as sess:
+            saver = tf.train.import_meta_graph(trained_path + save_file)
+            saver.restore(sess, tf.train.latest_checkpoint(trained_path))
+            frames_for_gif = []
 
-            action_getter = ActionGetter(action_space,
-                                         replay_memory_start_size=REPLAY_MEMORY_START_SIZE,
-                                         max_frames=MAX_FRAMES)
-            doEvalType = "evalReal"
-            GE.setEvalType(doEvalType)
+            terminal_live_lost = atari.reset(sess, evaluation=True)
 
-            with tf.Session() as sess:
-                saver = tf.train.import_meta_graph(trained_path + save_file)
-                saver.restore(sess, tf.train.latest_checkpoint(trained_path))
-                frames_for_gif = []
+            episode_reward_sum = 0
 
-                terminal_live_lost = atari.reset(sess, evaluation=True)
+            while True:
+                action = action_getter.get_action(sess, 0, atari.state, MAIN_DQN, evaluation=True)
 
-                episode_reward_sum = 0
+                #print("ACTION:", action) # 0 1 2 skip, buy, sell
+                #break
 
-                while True:
-                    #atari.env.render()
-                    action = 1 if terminal_live_lost else action_getter.get_action(sess, 0, atari.state,
-                                                                                   MAIN_DQN,
-                                                                                   evaluation=True)
-                    processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
-                    episode_reward_sum += reward
-                    frames_for_gif.append(new_frame)
-                    if terminal == True:
-                        break
+                processed_new_frame, reward, terminal, terminal_live_lost, new_frame = atari.step(sess, action)
+                episode_reward_sum += reward
+                frames_for_gif.append(new_frame)
+                if terminal == True:
+                    break
 
-                #atari.env.close()
-                print("The total reward is {}".format(episode_reward_sum))
-                print("Creating gif...")
-                generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
-                print("Gif created, check the folder {}".format(gif_path))
+            #atari.env.close()
+            print("The total reward is {}".format(episode_reward_sum))
+            #print("Creating gif...")
+            #generate_gif(0, frames_for_gif, episode_reward_sum, gif_path)
+            #print("Gif created, check the folder {}".format(gif_path))
+    return action
+
+
+
+
+class Predictor(object):
+    def __init__(self):
+        global action_space
+        global GE
+        global logNr
+        global gameMode
+
+
+        percentDiffList = []
+        action_space = 3
+        GE = PlayGame()
+        logNr = "040"
+        GE.defineLogNr(logNr)
+        gameMode = "notatari"
+
+        print("initialized trader AI")
+
+        setupVariables()
+
+    def predictNextHourNow(self):
+        action = predictNextHour()
+
+        return action
+
+
+
+if __name__ == "__main__":
+    ChrisMarshall = Predictor()
+    action = ChrisMarshall.predictNextHourNow()
+
+    print(action)
