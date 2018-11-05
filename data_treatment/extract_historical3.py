@@ -9,12 +9,19 @@ import dateutil.parser as dp
 from time import sleep
 import os.path
 
+# 60		1 minute
+# 3600		1 hour
+# 86400		1 day
+# 604800	1 week
+# 2629744	1 month (30.4369 days)
+# 31556926	1 year (365.2422 days)
 
 client = gdax.PublicClient()
 
 # GENERATE NEW CSV
-df_BTC = pd.DataFrame(columns=["Date", "Close", "Volume"])
-df_ETH = pd.DataFrame(columns=["Date", "Close", "Volume"])
+df_BTC = pd.DataFrame(columns=["Unix", "Date", "Close", "Volume"])
+df_ETH = pd.DataFrame(columns=["Unix", "Date", "Close", "Volume"])
+df_compare = pd.DataFrame(columns=["Unix", "Date"])
 
 if os.path.exists("./cryptoExtract/treatment/raw_BTC_GBP.csv") == True:
     os.remove("./cryptoExtract/treatment/raw_BTC_GBP.csv")
@@ -36,98 +43,123 @@ def convert_iso_to_unix(t):
 def convert_unix_to_iso(t):
     return datetime.fromtimestamp(t).isoformat()
 
-
-
 def extractBTC(startDate, endDate):
     global BTCcnt
-    global extracted_unix_list
 
     output = client.get_historic_rates(gdax.BTC_GBP, startDate, endDate, granularity=900)
-    #print(output)
     output = np.asarray(output)
 
     date = output[:, [0]]
     close = output[:, [4]]
     volume = output[:, [5]]
 
-    for i in range(len(close)):
+    for o in range(len(close)):
 
-        df_date_column = dt.datetime.fromtimestamp(date[i]).strftime('%Y-%m-%d %I-%M-%p')
-        df_close_column = int(close[i])
-        df_volume_column = int(volume[i])
+        df_date_column = dt.datetime.fromtimestamp(date[o]).strftime('%Y-%m-%d %I-%M-%p')
+        df_date_inUnix_column = str(int(date[o]))
+        df_close_column = int(close[o])
+        df_volume_column = int(volume[o])
 
-        df_BTC.loc[BTCcnt] = df_date_column, df_close_column, df_volume_column
-        print(str(int(date[i])))
-        date_unix = str(int(date[i]))
-        extracted_unix_list.append(date_unix)
-        #df_BTC.to_csv("./cryptoExtract/treatment/raw_BTC_GBP.csv", header=True, index=True)
+        df_BTC.loc[BTCcnt] = df_date_inUnix_column, df_date_column, df_close_column, df_volume_column
+
         BTCcnt += 1
 
     return df_BTC
 
-# 60		1 minute
-# 3600		1 hour
-# 86400		1 day
-# 604800	1 week
-# 2629744	1 month (30.4369 days)
-# 31556926	1 year (365.2422 days)
+def dateFiller(df, compare_list):
+    keep_filling = True
+    compare_date = int(df["Unix"][0])
+    date_index = 0
+
+    while keep_filling == True:
+        compare_date -= 900
+
+        if compare_date != int(df["Unix"][date_index])
+            print(compare_date, "!=", int(df["Unix"][date_index])
+
+
+        date_index += 1
+
+
+
+    for u in range(len(compare_list)-1):
+        extracted = int(df["Unix"][u])
+        compare = compare_list[u]
+
+        if extracted != compare:
+            print(extracted, "!=", compare)
+
+            A = df[:u].reset_index(drop=True)
+            #A.loc[-1] = self.rewardSum, self.profit,
+
+            B = df[u:].reset_index(drop=True)
+
+            print("printing A")
+            print(A)
+            print("\n")
+            print("printing B")
+            print(B)
+            filled_df = A.append(B).reset_index(drop=True)
+            break
+    return filled_df
 
 
 # give human iso timeframe
 end_date = "2018-10-29T07:00:00.000Z"
+number_of_batches = 4
+
+
 end_date_unix = convert_iso_to_unix(end_date)
-
-# how many 300 batches would you like it to go back?
-batches = 10
-# 1 batch = 300 elements, so in total we have to end yp with 3000 elements
-
 batch_unix_list = []
 batch_ISO_list = []
 batch_unix = end_date_unix
 batch_ISO = convert_unix_to_iso(end_date_unix)
 
-# CREATE LIST OF ISO DATES 270000 SECONDS APART (3 DAYS APART)
-for i in range(batches):
+# CREATE DATE COMPARE LIST
+date_increment = end_date_unix
+for i in range((number_of_batches * 300) - 1):
+    if i != 0:
+        #compare_unix_list.append(date_increment)
+        date_increment_inTimeStamp = dt.datetime.fromtimestamp(date_increment).strftime('%Y-%m-%d %I-%M-%p')
+        df_compare.loc[len(df_compare)] = date_increment, date_increment_inTimeStamp
+
+    date_increment -= 900
+
+# CREATE DATE QUERY LIST (ISO DATES 3 DAYS APART (270000 SECONDS) )
+for i in range(number_of_batches):
     batch_unix_list.append(batch_unix)
     batch_ISO = convert_unix_to_iso(batch_unix)
     batch_ISO_list.append(batch_ISO)
     batch_unix -= 270000  # 3 days # 270000 = 900×300
 
-# CREATE LIST OF 3000 ELEMENTS THAT WILL BE USED TO FIND MISSING ONES IN THE ACTUAL EXTRACTED DATA
-compare_unix_list = []
-compare_unix = end_date_unix
-for i in range(2999):
-    compare_unix_list.append(compare_unix)
-    compare_unix -= 900
-
-print("compare_unix_list:", len(compare_unix_list))
-print(compare_unix_list)
-print("\n")
-
-extracted_unix_list = []
-
-# QUERY ACTUAL DATA FROM GDAX
+# EXTRACT ACTUAL DATA FROM GDAX
 for i in range(len(batch_ISO_list)-1):
-    print("Batch:", i)
     endDate = batch_ISO_list[i]
     startDate = batch_ISO_list[i+1]
 
-    df_BTC = extractBTC(startDate, endDate)
+    df_Extracted_BTC = extractBTC(startDate, endDate)
     sleep(0.4)
 
-print("extracted_unix_list:", len(extracted_unix_list))
-print(extracted_unix_list)
+# FILL UP MISSING DATES
+#filledBTC = dateFiller(df_BTC, compare_unix_list)
+
+
+print("Compare DF")
+print(df_compare)
 print("\n")
 
-# NOW ITERATE THROUGH THE COMPARE LIST AND COMPARE IT TO THE EXTRACTED DATA AND FILL IN THE MISSING ONES
-# IT LOOKS LIKE YOU HAVE TO FILL IN LIKE 310 VALUES AT THE MOMENT
 
-    #df_ETH = extractETH(startDate, endDate)
-    #print(df_BTC)
-    #print(df_ETH)
+print("Extracted DF")
+print(df_Extracted_BTC)
+print("\n")
+
+# print("filledBTC")
+# print(filledBTC)
+
+
 
 
 # SAVE THE DF TO A CSV, THIS IS A VERY EFFICIENT METHOD FOR SAVING LOGS AS WELL
-df_BTC.to_csv("./cryptoExtract/treatment/raw_BTC_GBP.csv", header=True, index=True)
+filledBTC.to_csv("./cryptoExtract/treatment/raw_BTC_GBP.csv", header=True, index=True)
 
 
