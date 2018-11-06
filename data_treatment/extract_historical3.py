@@ -32,8 +32,6 @@ if os.path.exists("./cryptoExtract/treatment/raw_ETH_USD.csv") == True:
 df_BTC.to_csv("./cryptoExtract/treatment/raw_BTC_GBP.csv", mode='a', header=True)
 df_ETH.to_csv("./cryptoExtract/treatment/raw_ETH_USD.csv", mode='a', header=True)
 
-BTCcnt = 0
-ETHcnt = 0
 
 def convert_iso_to_unix(t):
     parsed_t = dp.parse(t)
@@ -43,87 +41,58 @@ def convert_iso_to_unix(t):
 def convert_unix_to_iso(t):
     return datetime.fromtimestamp(t).isoformat()
 
+def convert_unix_to_timestamp(t):
+    return dt.datetime.fromtimestamp(t).strftime('%Y-%m-%d %I-%M-%p')
+
 def extractBTC(startDate, endDate):
     global BTCcnt
-
     output = client.get_historic_rates(gdax.BTC_GBP, startDate, endDate, granularity=900)
     output = np.asarray(output)
-
     date = output[:, [0]]
     close = output[:, [4]]
     volume = output[:, [5]]
 
     for o in range(len(close)):
-
         df_date_column = dt.datetime.fromtimestamp(date[o]).strftime('%Y-%m-%d %I-%M-%p')
         df_date_inUnix_column = str(int(date[o]))
         df_close_column = int(close[o])
         df_volume_column = int(volume[o])
-
         df_BTC.loc[BTCcnt] = df_date_inUnix_column, df_date_column, df_close_column, df_volume_column
-
         BTCcnt += 1
-
     return df_BTC
 
-def dateFiller(df, compare_list):
-    keep_filling = True
+
+
+def dateFiller(df):
     compare_date = int(df["Unix"][0])
     date_index = 0
+    filled_df = df
 
-    while keep_filling == True:
+    for u in range(len(filled_df) - 1):
+
+        if compare_date != int(filled_df["Unix"][date_index]):
+            print(compare_date, "!=", int(filled_df["Unix"][date_index]))
+
+            A = filled_df[:date_index].reset_index(drop=True)
+            A.loc[len(A)] = compare_date, convert_unix_to_timestamp(compare_date), A["Close"][len(A)-1], A["Volume"][len(A)-1]
+            B = filled_df[date_index:].reset_index(drop=True)
+
+            filled_df = A.append(B).reset_index(drop=True)
+
         compare_date -= 900
-
-        if compare_date != int(df["Unix"][date_index])
-            print(compare_date, "!=", int(df["Unix"][date_index])
-
-
         date_index += 1
 
-
-
-    for u in range(len(compare_list)-1):
-        extracted = int(df["Unix"][u])
-        compare = compare_list[u]
-
-        if extracted != compare:
-            print(extracted, "!=", compare)
-
-            A = df[:u].reset_index(drop=True)
-            #A.loc[-1] = self.rewardSum, self.profit,
-
-            B = df[u:].reset_index(drop=True)
-
-            print("printing A")
-            print(A)
-            print("\n")
-            print("printing B")
-            print(B)
-            filled_df = A.append(B).reset_index(drop=True)
-            break
     return filled_df
-
 
 # give human iso timeframe
 end_date = "2018-10-29T07:00:00.000Z"
 number_of_batches = 4
-
 
 end_date_unix = convert_iso_to_unix(end_date)
 batch_unix_list = []
 batch_ISO_list = []
 batch_unix = end_date_unix
 batch_ISO = convert_unix_to_iso(end_date_unix)
-
-# CREATE DATE COMPARE LIST
-date_increment = end_date_unix
-for i in range((number_of_batches * 300) - 1):
-    if i != 0:
-        #compare_unix_list.append(date_increment)
-        date_increment_inTimeStamp = dt.datetime.fromtimestamp(date_increment).strftime('%Y-%m-%d %I-%M-%p')
-        df_compare.loc[len(df_compare)] = date_increment, date_increment_inTimeStamp
-
-    date_increment -= 900
 
 # CREATE DATE QUERY LIST (ISO DATES 3 DAYS APART (270000 SECONDS) )
 for i in range(number_of_batches):
@@ -133,31 +102,29 @@ for i in range(number_of_batches):
     batch_unix -= 270000  # 3 days # 270000 = 900×300
 
 # EXTRACT ACTUAL DATA FROM GDAX
+BTCcnt = 0
+ETHcnt = 0
 for i in range(len(batch_ISO_list)-1):
     endDate = batch_ISO_list[i]
     startDate = batch_ISO_list[i+1]
 
     df_Extracted_BTC = extractBTC(startDate, endDate)
+    #df_Extracted_ETH =
     sleep(0.4)
 
+
 # FILL UP MISSING DATES
-#filledBTC = dateFiller(df_BTC, compare_unix_list)
-
-
-print("Compare DF")
-print(df_compare)
-print("\n")
+filledBTC = dateFiller(df_Extracted_BTC)
+#filledETH = dateFiller(df_Extracted_ETH)
+#dateFiller(df_Extracted_BTC)
 
 
 print("Extracted DF")
 print(df_Extracted_BTC)
 print("\n")
 
-# print("filledBTC")
-# print(filledBTC)
-
-
-
+print("filledBTC")
+print(filledBTC)
 
 # SAVE THE DF TO A CSV, THIS IS A VERY EFFICIENT METHOD FOR SAVING LOGS AS WELL
 filledBTC.to_csv("./cryptoExtract/treatment/raw_BTC_GBP.csv", header=True, index=True)
