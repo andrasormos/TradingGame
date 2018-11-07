@@ -11,6 +11,8 @@ import sys
 from skimage import draw
 import talib
 
+# HAS DEMA
+
 plt.style.use('seaborn-darkgrid')
 
 df_BTC = pd.read_csv("./cryptoExtract/raw_BTC_GBP.csv", index_col=0)
@@ -22,9 +24,9 @@ sma_days_B = 2
 
 # START DATE
 btc_state_size = 1 # 33000, 63000
-start_date = 30000
+start_date = 33000
 end_date = start_date + btc_state_size
-game_end_date = 45000
+game_end_date = 55000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -56,6 +58,7 @@ sell_enabled = True
 
 df_BTC["Sma"] = talib.EMA(df_BTC["Close"], timeperiod=ma_a)
 df_BTC["Ema"] = talib.DEMA(df_BTC["Close"], timeperiod=ma_b)
+#df_BTC["Ema"] = df_BTC["Close"]
 
 if 1 == 2:
 	fig = plt.figure(figsize=(19, 10))

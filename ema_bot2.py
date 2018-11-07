@@ -9,20 +9,24 @@ from matplotlib.widgets import Button, TextBox
 import os.path
 import sys
 from skimage import draw
+import talib
+
+# SIMULATES THE ACTUAL PASSAGE OF TIME IN 15 MINUTES INCREMENTS
+
 plt.style.use('seaborn-darkgrid')
 
 df_BTC = pd.read_csv("./cryptoExtract/raw_BTC_GBP.csv", index_col=0)
 df_BTC = df_BTC.iloc[::-1].reset_index(drop=True)
 
 # SMA
-sma_days_A = 20
+sma_days_A = 14
 sma_days_B = 2
 
 # START DATE
-btc_state_size = 1 # 49000, 62000
-start_date = 49000
+btc_state_size = 500 # 49000, 62000
+start_date = 33000
 end_date = start_date + btc_state_size
-game_end_date = 62000
+game_end_date = 40000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -49,6 +53,9 @@ btc_state = df_BTC.loc[start_date:end_date]
 btc_state_ma_a = df_BTC.loc[(start_date - ma_a):end_date]
 btc_state_ma_b = df_BTC.loc[(start_date - ma_b):end_date]
 
+print(btc_state)
+print(btc_state_ma_b)
+
 for i in range(end_date, (game_end_date)):
 	if i % 500 == 0:
 		print("STEP: ", i, "DATE: ", btc_state["Date"][i])
@@ -70,12 +77,12 @@ for i in range(end_date, (game_end_date)):
 	# ADD NEXT EMA ROW
 	btc_state_ma_b = pd.concat([btc_state_ma_b, next_state_row])
 	btc_state_ma_b = btc_state_ma_b.drop(btc_state_ma_b.index[0])
-	btc_state_ma_b_applied = btc_state_ma_b["Close"].ewm(span=ma_b, min_periods=0, adjust=False, ignore_na=False).mean()
+	btc_state_ma_b_applied = talib.DEMA(btc_state_ma_b["Close"], timeperiod=ma_b)
 	btc_state_ma_b_applied = btc_state_ma_b_applied.loc[btc_state.index[0]:]  # crop the beginning using btc state's range
 	btc_state_ma_b_price_current = btc_state_ma_b_applied.iloc[-1]
 
 
-	if 1==2:
+	if 1==1:
 		fig = plt.figure(figsize=(12, 10))
 		ax1 = fig.add_subplot(111)
 		ax1.plot(btc_state["Close"], "-", color='b', linewidth=2)
@@ -93,27 +100,27 @@ for i in range(end_date, (game_end_date)):
 	# BUY
 	if btc_state_ma_b_price_current > btc_state_ma_a_price_current and buy_enabled == True:  #and days_since_buy > 2880:
 		days_since_buy = 0
-		btc_balance = trade_amount / btc_price_current
+		btc_balance += trade_amount / btc_price_current
 		fiat_cash_balance -= trade_amount
 		buy_enabled = False
 		sell_enabled = True
-
+		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 		print(df_BTC["Date"][i], " Price:", btc_price_current)
-		print("		BUY BTC NOW")
-		print("\n")
+		print("						BUY BTC NOW", "Full Balance: ", fullBalance, "BTC:", btc_balance)
+		#print("\n")
 		buy = btc_price_current
 
 	# SELL
 	if btc_state_ma_b_price_current < btc_state_ma_a_price_current and btc_balance != 0:
 		fiat_cash_balance += btc_balance * btc_price_current
 		btc_balance = 0
+		days_since_buy = 0
 		buy_enabled = True
 		sell_enabled = False
-
+		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 		print(df_BTC["Date"][i], " Price:", btc_price_current)
-		print("		SELL BTC NOW")
-		print("Fiat Balance:", fiat_cash_balance)
-		print("\n")
+		print("						SELL BTC NOW", "Full Balance:", fullBalance)
+		#print("\n")
 		sell = btc_price_current
 
 	days_since_buy += 1
@@ -138,11 +145,7 @@ def zero_to_nan(values):
 new_buy_list = zero_to_nan(buy_list)
 new_sell_list = zero_to_nan(sell_list)
 
-
-
-
-
-fig = plt.figure(figsize=(12, 10))
+fig = plt.figure(figsize=(19, 10))
 ax1 = fig.add_subplot(111)
 
 ax1.plot(price_list, "-", color='b', linewidth=1)
@@ -154,22 +157,21 @@ ax1.plot(new_sell_list, "*", color='r', markersize=8)
 xi = [i for i in range(0, len(new_sell_list))]
 for i, txt in enumerate(profit_list):
 	if txt > 0:
-		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=20, fontweight='bold', color='green')
+		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=10, fontweight='bold', color='green')
 	else:
-		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=20, fontweight='bold', color='red')
+		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=10, fontweight='bold', color='red')
 
 xp = [p for p in range(0, len(new_buy_list))]
 for p, txt in enumerate(profit_list):
 	if txt > 0:
-		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=20, fontweight='bold', color='green')
+		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=10, fontweight='bold', color='green')
 	else:
-		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=20, fontweight='bold', color='red')
+		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=10, fontweight='bold', color='red')
 
 ax1.legend()
 
 
 plt.show()
-
 
 
 #'''
