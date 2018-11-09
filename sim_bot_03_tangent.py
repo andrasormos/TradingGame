@@ -10,6 +10,10 @@ import os.path
 import sys
 from skimage import draw
 import talib
+from pylab import plot,show
+from scipy import interpolate
+from numpy import arange
+
 
 # SIMULATES THE ACTUAL PASSAGE OF TIME IN 15 MINUTES INCREMENTS
 
@@ -26,10 +30,10 @@ sma_days_D = 0
 std_days_A = 60
 
 # START DATE
-btc_state_size = 1 # 33000, 63000,      40000 - 41344
-start_date = 47000
+btc_state_size = 1000 # 33000, 63000,      40000 - 41344
+start_date = 45000
 end_date = start_date + btc_state_size
-game_end_date = 48344
+game_end_date = 50344
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -122,7 +126,49 @@ for i in range(end_date, (game_end_date)):
 	sma_list_D.append(btc_state_ma_d_price_current)
 	price_list.append(btc_price_current)
 
-	if 1==1:
+
+	#print(btc_state_ma_b_applied[-1004:])
+	#ma_b_data = np.asarray(btc_state_ma_b_applied[-5:])
+	#ma_b_data_index = np.asarray(btc_state_ma_b_applied.index[-5:])
+
+	price_index = np.asarray(btc_state_ma_b_applied[-1004:])
+	t = np.asarray(btc_state_ma_b_applied.index[-1004:])
+	print(t)
+	print(price_index)
+
+	def draw_tangent(x, y, a):
+		# interpolate the data with a spline
+		spline = interpolate.splrep(x, y)
+		small_t = arange(a - 50, a + 50)
+		fa = interpolate.splev(a, spline, der=0)  # f(a)
+		fprime = interpolate.splev(a, spline, der=1)  # f'(a)
+		tan = fa + fprime * (small_t - a)  # tangent
+		plot(a, fa, 'om', small_t, tan, '--r')
+
+
+	draw_tangent(t, price_index, 45800)
+	# draw_tangent(t, price_index, 1989)
+
+	plot(t, price_index, alpha=0.5)
+	show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if 1==2:
 		fig = plt.figure(figsize=(12, 10))
 		ax1 = fig.add_subplot(111)
 		ax1.plot(btc_state["Close"], "-", color='black', linewidth=2)
@@ -131,6 +177,10 @@ for i in range(end_date, (game_end_date)):
 		ax1.plot(btc_state_ma_c_applied, "-", color='darkred', linewidth=2, label=("sma" + str(sma_days_C)))
 		ax1.legend()
 		plt.show()
+
+
+
+
 
 
 	buy = 0

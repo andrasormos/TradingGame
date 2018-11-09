@@ -79,9 +79,6 @@ df_BTC["MA_C"] = talib.DEMA(df_BTC["Close"], timeperiod=ma_c)
 df_BTC["STD_A"] = df_BTC["MA_B"].rolling(std_a_period).std()
 
 
-
-
-
 for i in range(start_date, game_end_date):
 	if i % 10000 == 0:
 		print("STEP: ", i, "DATE: ", df_BTC["Date"][i], "STD:", btc_state_std_a_price_current)
