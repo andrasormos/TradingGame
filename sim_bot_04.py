@@ -16,9 +16,7 @@ from numpy import arange
 from scipy import ndimage
 
 # SIMULATES THE ACTUAL PASSAGE OF TIME IN 15 MINUTES INCREMENTS
-fig = plt.figure(figsize=(19, 10))
-ax1 = fig.add_subplot(111)
-fig.tight_layout()
+
 
 def smoothListGaussian(list, strippedXs=False, degree=5):
 	window = degree * 2 - 1
@@ -71,19 +69,17 @@ ma_c = 24 # sell
 ma_d = 100 # selltresh
 
 std_a_period = std_days_A * 96
-sma_list_A = []
-sma_list_B = []
-sma_list_C = []
-sma_list_D = []
-
-#df_BTC = pd.DataFrame(columns=["Unix", "Date", "Close", "Volume"])
+sma_list_A = pd.DataFrame(columns=["Close"])
+sma_list_B = pd.DataFrame(columns=["Close"])
+sma_list_C = pd.DataFrame(columns=["Close"])
+sma_list_D = pd.DataFrame(columns=["Close"])
 
 smooth_list_B = []
 std_list_A = []
-price_list = []
-profit_list = []
-buy_list = []
-sell_list = []
+price_list = pd.DataFrame(columns=["Close"])
+profit_list = pd.DataFrame(columns=["Price"])
+buy_list = pd.DataFrame(columns=["Price"])
+sell_list = pd.DataFrame(columns=["Price"])
 
 point_x_list_B = []
 point_y_list_B = []
@@ -120,6 +116,7 @@ for i in range(end_date, (game_end_date)):
 	btc_state = pd.concat([btc_state, next_state_row])
 	btc_state = btc_state.drop(btc_state.index[0])
 	btc_price_current = btc_state["Close"].iloc[-1]
+	price_list.loc[btc_state.index[-1]] = btc_state.iloc[-1]
 
 	# MA A
 	btc_state_ma_a = pd.concat([btc_state_ma_a, next_state_row])
@@ -127,6 +124,7 @@ for i in range(end_date, (game_end_date)):
 	btc_state_ma_a_applied = talib.DEMA(btc_state_ma_a["Close"], timeperiod=ma_a)
 	#btc_state_ma_a_applied = btc_state_ma_a_applied.loc[btc_state.index[0]:]  # crop the beginning using btc state's range
 	btc_state_ma_a_price_current = btc_state_ma_a_applied.iloc[-1]
+	sma_list_A.loc[btc_state_ma_a_applied.index[-1]] = btc_state_ma_a_applied.iloc[-1]
 
 
 	# MA B
@@ -135,6 +133,7 @@ for i in range(end_date, (game_end_date)):
 	btc_state_ma_b_applied = talib.DEMA(btc_state_ma_b["Close"], timeperiod=ma_b)
 	#btc_state_ma_b_applied = btc_state_ma_b_applied.loc[btc_state.index[0]:]  # crop the beginning using btc state's range
 	btc_state_ma_b_price_current = btc_state_ma_b_applied.iloc[-1]
+	sma_list_B.loc[btc_state_ma_b_applied.index[-1]] = btc_state_ma_b_applied.iloc[-1]
 
 	# MA C
 	btc_state_ma_c = pd.concat([btc_state_ma_c, next_state_row])
@@ -142,6 +141,7 @@ for i in range(end_date, (game_end_date)):
 	btc_state_ma_c_applied = talib.DEMA(btc_state_ma_c["Close"], timeperiod=ma_c)
 	#btc_state_ma_c_applied = btc_state_ma_c_applied.loc[btc_state.index[0]:]  # crop the beginning using btc state's range
 	btc_state_ma_c_price_current = btc_state_ma_c_applied.iloc[-1]
+	sma_list_C.loc[btc_state_ma_c_applied.index[-1]] = btc_state_ma_c_applied.iloc[-1]
 
 	# TEST MA
 	btc_state_ma_d = pd.concat([btc_state_ma_d, next_state_row])
@@ -149,6 +149,7 @@ for i in range(end_date, (game_end_date)):
 	btc_state_ma_d_applied = talib.DEMA(btc_state_ma_d["Close"], timeperiod=ma_d)
 	#btc_state_ma_d_applied = btc_state_ma_d_applied.loc[btc_state.index[0]:]  # crop the beginning using btc state's range
 	btc_state_ma_d_price_current = btc_state_ma_d_applied.iloc[-1]
+	sma_list_D.loc[btc_state_ma_d_applied.index[-1]] = btc_state_ma_d_applied.iloc[-1]
 
 	# GAUSSIAN MA B
 	list_y = np.asarray(btc_state_ma_b_applied[-1004:])
@@ -158,8 +159,6 @@ for i in range(end_date, (game_end_date)):
 	list_x_gauss = np.arange((first_index + 8), (first_index + 8 + len(list_y_gauss)) )
 	plot_x_gauss = np.arange((cnt-1004 + 8), (cnt-1004 + 8 + len(list_y_gauss)) )
 	list_y_gauss_current = list_y_gauss[-1]
-	#print(list_y_gauss)
-	#print(list_y_gauss_current)
 
 	def draw_tangent(x, y, point_x):
 		# interpolate the data with point_x spline
@@ -179,29 +178,8 @@ for i in range(end_date, (game_end_date)):
 
 		return point_x, point_y, line, tan, degree
 
-		# point_x_list_B.append(point_x)
-		# point_y_list_B.append(point_y)
-		# line_x_list_B.append(line)
-		# tan_x_list_B.append(tan)
 
-	# CREATE LISTS
-	# next_state_row = df_BTC.loc[[i+1]]
-	# btc_state = pd.concat([btc_state, next_state_row])
-	# btc_state = btc_state.drop(btc_state.index[0])
-	# btc_price_current = btc_state["Close"].iloc[-1]
-
-
-	sma_list_A.append(btc_state_ma_a_price_current)
-	sma_list_B.append(btc_state_ma_b_price_current)
-	sma_list_C.append(btc_state_ma_c_price_current)
-	sma_list_D.append(btc_state_ma_d_price_current)
-	price_list.append(btc_price_current)
-	smooth_list_B.append(list_y_gauss_current)
-
-	# point_x_list_B.append(point_x)
-	# point_y_list_B.append(point_y)
-	# line_x_list_B.append(line)
-	# tan_x_list_B.append(tan)
+	#smooth_list_B.append(list_y_gauss_current)
 
 	price_index = np.asarray(btc_state_ma_b_applied[-1004:])
 	t = np.asarray(btc_state_ma_b_applied.index[-1004:])
@@ -226,11 +204,14 @@ for i in range(end_date, (game_end_date)):
 	sell = 0
 	if len(sma_list_A) > 2:
 		interPrice = np.asarray(price_list)
-		interA = np.asarray(sma_list_A)
-		interB = np.asarray(sma_list_B)
-		interC = np.asarray(sma_list_C)
-		interD = np.asarray(sma_list_D)
+		interA = np.asarray(sma_list_A["Close"].values)
+		# print(interA)
+		# print("\n")
+		interB = np.asarray(sma_list_B["Close"].values)
+		interC = np.asarray(sma_list_C["Close"].values)
+		interD = np.asarray(sma_list_D["Close"].values)
 		intersect_ab_cnt = len(np.argwhere(np.diff(np.sign(interB - interA))).flatten())
+
 		intersect_ac_cnt = len(np.argwhere(np.diff(np.sign(interC - interA))).flatten())
 		intersect_cd_cnt = len(np.argwhere(np.diff(np.sign(interC - interD))).flatten())
 		intersect_pc_cnt = len(np.argwhere(np.diff(np.sign(interPrice - interC))).flatten())
@@ -238,13 +219,16 @@ for i in range(end_date, (game_end_date)):
 	# CHECK SLOPE
 	# print(btc_state_ma_b["Close"])
 
-	ma_b_list = np.asarray(btc_state_ma_b_applied)
+
+	ma_b_list = np.asarray(btc_state_ma_b_applied.values)
+
 	# print(ma_b_list)
 	# print(ma_b_list[-1])
 	# print(ma_b_list[-5])
 	if len(ma_b_list) > 6:
 		recentA = ma_b_list[-1]
 		pastA = ma_b_list[-2]
+
 		if recentA >= pastA:
 			buy_slope_increasing = True
 		else:
@@ -255,7 +239,8 @@ for i in range(end_date, (game_end_date)):
 
 	# BUY CURVE IS CROSSED UPWARDS
 	if intersect_ab_cnt > past_intersect_ab_cnt:
-		if btc_state_ma_a_price_current > btc_state_ma_b_price_current and buy_slope_increasing:
+		if btc_state_ma_a_price_current > btc_state_ma_b_price_current: # and buy_slope_increasing:
+
 			activate_buy = True
 		else:
 			activate_buy = False
@@ -283,13 +268,13 @@ for i in range(end_date, (game_end_date)):
 		fiat_cash_balance -= trade_amount
 		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 		profit = int(np.round((fullBalance - initBalance), 0))
-		#print(cnt, "BUY ", )
+		print(cnt, "BUY ", )
 		#print(df_BTC["Date"][i], "Profit: £", profit, "Balance:",fullBalance, "|BTC:", np.round(btc_balance, 4), "BOUGHT")
 		buy = btc_price_current
 		activate_buy = False
 
-		point_x, point_y, line, tan, fprime = draw_tangent(plot_x_gauss, list_y_gauss, plot_x_gauss[-1])
-		print(cnt, "fprime", fprime)
+		# point_x, point_y, line, tan, fprime = draw_tangent(plot_x_gauss, list_y_gauss, plot_x_gauss[-1])
+		# print(cnt, "fprime", fprime)
 
 	# SELL
 	if activate_sell and btc_balance != 0:
@@ -297,28 +282,32 @@ for i in range(end_date, (game_end_date)):
 		btc_balance = 0
 		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 		profit = int(np.round((fullBalance - initBalance), 0)) # df_BTC["Date"][i]
-		#print(cnt, "Profit: £", profit,"Balance:",fullBalance, "|BTC:", np.round(btc_balance, 4), "SOLD")
+		print(cnt, "Profit: £", profit,"Balance:",fullBalance, "|BTC:", np.round(btc_balance, 4), "SOLD")
 		sell = btc_price_current
 		activate_sell = False
 		initBalance = fullBalance
 
-		point_x, point_y, line, tan, fprime = draw_tangent(plot_x_gauss, list_y_gauss, plot_x_gauss[-1])
-		print(cnt, "fprime", fprime)
+		# point_x, point_y, line, tan, fprime = draw_tangent(plot_x_gauss, list_y_gauss, plot_x_gauss[-1])
+		# print(cnt, "fprime", fprime)
 
 	days_since_buy += 1
 
-	#std_list_A.append(btc_state_std_a_price_current)
-	buy_list.append(buy)
-	sell_list.append(sell)
-	profit_list.append(profit)
+	if buy != 0:
+		buy_list.loc[btc_state.index[-1]] = int(buy)
+
+	if sell != 0:
+		sell_list.loc[btc_state.index[-1]] = int(sell)
+		profit_list.loc[btc_state.index[-1]] = int(profit)
 
 
 def zero_to_nan(values):
 	"""Replace every 0 with 'nan' and return a copy."""
 	return [float('nan') if x == 0 else x for x in values]
 
-new_buy_list = zero_to_nan(buy_list)
-new_sell_list = zero_to_nan(sell_list)
+
+fig = plt.figure(figsize=(19, 10))
+ax1 = fig.add_subplot(111)
+fig.tight_layout()
 
 ax1.plot(price_list, "-", color='gray', linewidth=1.5)
 ax1.plot(sma_list_A, "-", color='lightgreen', linewidth=2, label=("buy " + str(ma_a)))
@@ -326,29 +315,31 @@ ax1.plot(sma_list_B, "-", color='darkgreen', linewidth=2, label=("buy tresh " + 
 ax1.plot(sma_list_C, "-", color='pink', linewidth=2, label=("sell " + str(ma_c)))
 ax1.plot(sma_list_D, "-", color='darkred', linewidth=2, label=("sell tresh " + str(ma_d)))
 
-#list_x_gauss = np.arange((-8), (len(smooth_list_B)-8) )
-#ax1.plot(list_x_gauss, smooth_list_B, "-", color='orange', linewidth=2, label=("buy smooth"))
+# list_x_gauss = np.arange((-8), (len(smooth_list_B)-8) )
+# ax1.plot(list_x_gauss, smooth_list_B, "-", color='orange', linewidth=2, label=("buy smooth"))
 
 
-# ax1.plot(std_list_A, "-", color='cyan', linewidth=1.5, label="std")
-ax1.plot(new_buy_list, "o", color='darkgreen', markersize=10)
-ax1.plot(new_sell_list, "o", color='darkred', markersize=10)
+ax1.plot(buy_list["Price"], "o", color='darkgreen', markersize=10)
+ax1.plot(sell_list["Price"], "o", color='darkred', markersize=10)
 
-xi = [i for i in range(0, len(new_sell_list))]
-print(xi)
+print("sell_list")
+print(sell_list["Price"].index)
+print("\n")
 
-for i, txt in enumerate(profit_list):
-	if txt >= 0:
-		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=20, fontweight='bold', color='green')
+print("profit list")
+print(profit_list["Price"].index)
+print("\n")
+
+# xi = [i for i in range(0, len(sell_list["Price"]))]
+
+for i in profit_list["Price"].index:
+	text = profit_list["Price"][i]
+
+	if int(text) >= 0:
+		ax1.annotate(text, xy=(i, sell_list["Price"][i]), size=20, fontweight='bold', color='green')
 	else:
-		ax1.annotate(txt, (xi[i], new_sell_list[i]), size=20, fontweight='bold', color='red')
+		ax1.annotate(text, xy=(i, sell_list["Price"][i]), size=20, fontweight='bold', color='red')
 
-# xp = [p for p in range(0, len(new_buy_list))]
-# for p, txt in enumerate(profit_list):
-# 	if txt >= 0:
-# 		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=10, fontweight='bold', color='green')
-# 	else:
-# 		ax1.annotate(txt, (xi[p], new_buy_list[p]), size=10, fontweight='bold', color='red')
 
 ax1.legend()
 
