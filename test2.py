@@ -39,15 +39,6 @@ def draw_tangent(x, y, cvPoint):
 	spline = interpolate.splrep(x, y)
 	line = arange(cvPoint - 5, cvPoint + 5)
 
-	print("spline")
-	print(spline)
-
-	print("\n")
-	print(spline[0])
-
-	print("\n")
-	print(spline[1])
-
 	fa = interpolate.splev(cvPoint, spline, der=0)  # f(cvPoint)
 	print("fa", fa)
 

@@ -20,8 +20,12 @@ def draw_tangent(x,y,point_x):
 	fprime = interpolate.splev(point_x, spline, der=1)  # f'(point_x)
 	tan = point_y + fprime * (line - point_x)  # tangent
 
+	print(line)
+	print("\n")
+	print(tan)
 	plot(point_x, point_y, 'o')
 	plot(line, tan, '.') # '--r'
+
 
 
 draw_tangent(t, price_index, 41)
