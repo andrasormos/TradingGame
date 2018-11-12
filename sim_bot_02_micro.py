@@ -27,9 +27,9 @@ std_days_A = 60
 
 # START DATE
 btc_state_size = 1 # 33000, 63000,      40000 - 41344
-start_date = 47000
+start_date = 40000
 end_date = start_date + btc_state_size
-game_end_date = 48344
+game_end_date = 41344
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -122,7 +122,7 @@ for i in range(end_date, (game_end_date)):
 	sma_list_D.append(btc_state_ma_d_price_current)
 	price_list.append(btc_price_current)
 
-	if 1==1:
+	if 1==2:
 		fig = plt.figure(figsize=(12, 10))
 		ax1 = fig.add_subplot(111)
 		ax1.plot(btc_state["Close"], "-", color='black', linewidth=2)
