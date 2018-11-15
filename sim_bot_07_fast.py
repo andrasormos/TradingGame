@@ -15,6 +15,7 @@ from scipy import interpolate
 from numpy import arange
 from scipy import ndimage
 from scipy import signal
+import timeit
 
 # SIMULATES THE ACTUAL PASSAGE OF TIME IN 15 MINUTES INCREMENTS
 
@@ -42,7 +43,7 @@ std_days_A = 60
 btc_state_size = 1000 # 33000, 63000,      39000 - 41344
 state_start_date_idx = 39000
 game_start_date_idx = state_start_date_idx + btc_state_size
-game_end_date_idx = 45000
+game_end_date_idx = 41000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -57,7 +58,7 @@ how_many_days_past_can_buy = 1
 days_since_buy = how_many_days_past_can_buy * 30 * 96
 
 ma_a_size = 2 # buy
-ma_b_size = 200 # buy tresh
+ma_b_size = 100 # buy tresh
 ma_c_size = 24 # sell
 ma_d_size = 100 # selltresh
 
@@ -119,113 +120,43 @@ for index, row in df_segment.iterrows():
 
 	cnt += 1
 	days = int(np.round((cnt / 96), 0))
+	if cnt % 96 == 0:
+		print("DAY", days)
 
-	# PRICE
-	state = df_BTC['Close'].loc[game_start_date_idx:game_end_date_idx]
-	state_ma_a = df_BTC['Close'].loc[game_start_date_idx - ma_a_size * 2 : game_start_date_idx]
-	state_ma_b = df_BTC['Close'].loc[game_start_date_idx - ma_b_size * 2 : game_start_date_idx]
-	state_ma_c = df_BTC['Close'].loc[game_start_date_idx - ma_c_size * 2 : game_start_date_idx]
-	state_ma_d = df_BTC['Close'].loc[game_start_date_idx - ma_d_size * 2 : game_start_date_idx]
-	print(state_ma_b)
-	print("\n")
+	#start_time = timeit.default_timer()
+	#state = df_BTC['Close'].loc[-600:index]
+	state_ma_a = df_BTC['Close'].loc[index - 600 - ma_a_size * 2: index]
+	state_ma_b = df_BTC['Close'].loc[index - 600 - ma_b_size * 2: index]
+	state_ma_c = df_BTC['Close'].loc[index - 600 - ma_c_size * 2: index]
+	state_ma_d = df_BTC['Close'].loc[index - 600 - ma_d_size * 2: index]
 
 	state_ma_a = np.round( (talib.DEMA(state_ma_a, timeperiod=ma_a_size)), 6 )#.astype('float32')
-	state_ma_b = np.round( (talib.DEMA(state_ma_b, timeperiod=ma_b_size)), 6 )#.astype('float32')
+	state_ma_b = np.round( (talib.DEMA(state_ma_b, timeperiod=ma_b_size)), 6 ).dropna()#.astype('float32')
 	state_ma_c = np.round( (talib.DEMA(state_ma_c, timeperiod=ma_c_size)), 6 )#.astype('float32')
 	state_ma_d = np.round( (talib.DEMA(state_ma_d, timeperiod=ma_d_size)), 6 )#.astype('float32')
 
 	# SMOOTH
-	state_ma_b_smooth = state_ma_b#[ma_b_size*2:]
+	state_ma_b_smooth_x = np.asarray(state_ma_b.index)
+	state_ma_b_smooth = state_ma_b.rolling(window=7, min_periods=0).mean()
+	state_ma_b_smooth = state_ma_b_smooth.astype('float32')
 
+	btc_price_current = df_BTC['Close'].loc[index]
+	ma_a_price_current = state_ma_a.iloc[-1]
+	ma_b_price_current = state_ma_b.iloc[-1]
+	ma_c_price_current = state_ma_c.iloc[-1]
+	ma_d_price_current = state_ma_d.iloc[-1]
+	ma_b_smooth_current = state_ma_b_smooth.iloc[-1]
 
-
-	print(state_ma_b_smooth)
-	print("\n")
-	#print("\n")
-	#print(state_ma_b_smooth)
-	break
-
-
-
-
-
-	# after calculating the DEMA, we shouldn't end up with 3 values, only 1 I think
-
-
-
-
-	btc_price_current = row['Close']
-
-	price_list.loc[state.index[-1]] = state.iloc[-1]
+	price_list.loc[index] = df_BTC['Close'].loc[index]
 	price_list = price_list.astype('uint16')
 
+	df_ma_charts.loc[index] = ma_a_price_current, ma_b_price_current, ma_c_price_current, ma_d_price_current, ma_b_smooth_current
 
-
-	# MA A
-	print(row['Close'])
-	state_ma_a_applied = talib.DEMA(row['Close'], timeperiod=ma_a_size)
-	state_ma_a_applied = np.round(state_ma_a_applied, 6)
-	state_ma_a_applied = state_ma_a_applied.astype('float32')
-	ma_a_price_current = state_ma_a_applied.iloc[-1]
-
-	# MA B
-	state_ma_b_applied = talib.SMA(row['Close'], timeperiod=ma_b_size)
-	state_ma_b_applied = np.round(state_ma_b_applied, 6)
-	state_ma_b_applied = state_ma_b_applied.astype('float32')
-	ma_b_price_current = state_ma_b_applied.iloc[-1]
-
-	# MA C
-	state_ma_c_applied = talib.DEMA(row['Close'], timeperiod=ma_c_size)
-	state_ma_c_applied = np.round(state_ma_c_applied, 6)
-	state_ma_c_applied = state_ma_c_applied.astype('float32')
-	ma_c_price_current = state_ma_c_applied.iloc[-1]
-
-	# TEST MA
-	state_ma_d_applied = talib.DEMA(row['Close'], timeperiod=ma_d_size)
-	state_ma_d_applied = np.round(state_ma_d_applied, 6)
-	state_ma_d_applied = state_ma_d_applied.astype('float32')
-	ma_d_price_current = state_ma_d_applied.iloc[-1]
-
-	# GAUSSIAN MA B
-	list_y = np.asarray(state_ma_b[-1004:])
-	list_x = np.asarray(state_ma_b.index[-1004:])
-	df = pd.DataFrame(list_y)
-	df = df.rolling(window=7, min_periods=0).mean()
-	list_y_gauss = df.values
-	y_gauss_current = list_y_gauss[-1]
-	list_y_gauss = np.round(list_y_gauss, 6)
-	list_y_gauss = list_y_gauss.astype('float32')
-
-
-
-
-
-	df_ma_charts.loc[state_ma_a.index[-1]] = state_ma_a.iloc[-1], state_ma_b.iloc[-1], state_ma_c.iloc[-1], state_ma_d.iloc[-1], list_y_gauss[-1]
 	df_ma_charts['mA'] = df_ma_charts['mA'].astype('float32')
 	df_ma_charts['mB'] = df_ma_charts['mB'].astype('float32')
 	df_ma_charts['mC'] = df_ma_charts['mC'].astype('float32')
 	df_ma_charts['mD'] = df_ma_charts['mD'].astype('float32')
 	df_ma_charts['smoothB'] = df_ma_charts['smoothB'].astype('float32')
-
-	#print(price_list.dtypes)
-
-
-	#print(df_ma_charts['mA'])
-	# state_ma_a_applied['Close'] = state_ma_a_applied['Close'].astype('float32')
-	# print(state_ma_a_applied.dtype)
-	# print(state_ma_a_applied)
-
-	if 1==2:
-		fig = plt.figure(figsize=(12, 10))
-		ax1 = fig.add_subplot(111)
-		ax1.plot(state["Close"], "-", color='black', linewidth=2)
-		ax1.plot(state_ma_a_applied, "-", color='blue', linewidth=2, label=("sma" + str(sma_days_A)))
-		ax1.plot(state_ma_b_applied, "-", color='darkgreen', linewidth=2, label=("ema" + str(sma_days_B)))
-		ax1.plot(state_ma_c_applied, "-", color='darkred', linewidth=2, label=("sma" + str(sma_days_C)))
-		ax1.plot(list_x, list_y_gauss, "-", color='orange', linewidth=2, label=("buy smooth"))
-		#draw_tangent(list_x_gauss, list_y_gauss, list_x_gauss[-1])
-		ax1.legend()
-		plt.show()
 
 	buy = 0
 	sell = 0
@@ -241,11 +172,25 @@ for index, row in df_segment.iterrows():
 		intersect_cd_cnt = len(np.argwhere(np.diff(np.sign(interC - interD))).flatten())
 		intersect_pc_cnt = len(np.argwhere(np.diff(np.sign(interPrice - interC))).flatten())
 
-		#print(intersect_ab_cnt)
-
 	# --------------------------------- CHECK IF SLOPE IS INCREASING ---------------------------------
-	point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
-	tan_angle_list_B.loc[state_ma_c_applied.index[-1]] = float(np.round(degree, 3))
+	point_x, point_y, line, tan, degree = calc_tangent(state_ma_b_smooth_x, state_ma_b_smooth, state_ma_b_smooth_x[-1])
+
+	start_time = timeit.default_timer()
+
+
+	tan_angle_list_B.loc[index] = np.round(degree, 3).astype('float16')
+
+	# just afte 11 it becomes slow, but its fast before that
+	# something about the chopping of it
+	# do the slicing with the current idex minus 1
+
+
+
+
+
+
+	print(timeit.default_timer() - start_time)
+	#print(tan_angle_list_B)
 
 	if len(tan_angle_list_B) > 10:
 		tan_angle_list_B = tan_angle_list_B.loc[tan_angle_list_B.index[-10]:] # crop off  above 10
@@ -257,12 +202,11 @@ for index, row in df_segment.iterrows():
 	else:
 		buy_slope_increasing = False
 
-
 	# ------------------------- BUY CURVE IS CROSSED UPWARDS -------------------------
 	if intersect_ab_cnt > 0:
 		intersect_ab_cnt = 0
 		if ma_a_price_current > ma_b_price_current:
-			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
+			tan_list_B.loc[state_ma_b.index[-1]] = point_x, point_y, line, tan, degree
 
 		if ma_a_price_current > ma_b_price_current and degree > 0.1:
 			activate_buy = True
@@ -270,7 +214,6 @@ for index, row in df_segment.iterrows():
 			activate_buy = False
 	else:
 		activate_buy = False
-
 
 	# ------------------------- SELL CURVE IS CROSSED DOWNWARDS -------------------------
 	if intersect_cd_cnt > 0 and btc_balance != 0: #and degree < 0  #and not buy_slope_increasing:
@@ -283,18 +226,15 @@ for index, row in df_segment.iterrows():
 	else:
 		activate_sell = False
 
-
 	# ------------------------- NEIGHTER HAPPENED -------------------------
 	# if not activate_buy and not activate_sell:
 	# 	fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 	# 	profit = fullBalance - initBalance
 	# 	profit = int(np.round(profit, 0))
 
-
-
 	# ------------------------- BUY -------------------------
 	if activate_buy: # and degree >= 0.1:
-		#point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
+		#point_x, point_y, line, tan, degree = calc_tangent(state_ma_b_smooth_x, state_ma_b_smooth, state_ma_b_smooth_x[-1])
 		try:
 			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
 		except:
@@ -305,14 +245,14 @@ for index, row in df_segment.iterrows():
 		fiat_cash_balance -= trade_amount
 		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
 		profit = int(np.round((fullBalance - initBalance), 0))
-		print("DAY", days, i, "BUY ", "index:", state_ma_a_applied.index[-1])
+		print("DAY", days, index, "BUY ", "index:", state_ma_a.index[-1])
 		#print(df_BTC["Date"][i], "Profit: £", profit, "Balance:",fullBalance, "|BTC:", np.round(btc_balance, 4), "BOUGHT")
 		buy = btc_price_current
 		activate_buy = False
 
 	# ------------------------- SELL -------------------------
 	if activate_sell and btc_balance != 0:
-		#point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
+		#point_x, point_y, line, tan, degree = calc_tangent(state_ma_b_smooth_x, state_ma_b_smooth, state_ma_b_smooth_x[-1])
 
 		try:
 			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
@@ -323,22 +263,20 @@ for index, row in df_segment.iterrows():
 		btc_balance = 0
 		fullBalance = np.round( (fiat_cash_balance + btc_balance * btc_price_current), 0)
 		profit = int(np.round((fullBalance - initBalance), 0)) # df_BTC["Date"][i]
-		print("DAY", days, i, "SELL", "index:", state_ma_a_applied.index[-1], "Profit: £", profit, "Balance:", fullBalance, "Gain:", (fullBalance- originalBalance))
+		print("DAY", days, index, "SELL", "index:", state_ma_a.index[-1], "Profit: £", profit, "Balance:", fullBalance, "Gain:", (fullBalance- originalBalance))
 		#print(cnt, "Profit: £", profit,"Balance:",fullBalance, "|BTC:", np.round(btc_balance, 4), "SOLD")
 		sell = btc_price_current
 		activate_sell = False
 		initBalance = fullBalance
 
-
 	days_since_buy += 1
 	previous_degree = degree
 
 	if buy != 0:
-		buy_list.loc[state.index[-1]] = int(buy)
+		buy_list.loc[index] = int(buy)
 	if sell != 0:
-		sell_list.loc[state.index[-1]] = int(sell)
-		profit_list.loc[state.index[-1]] = int(profit)
-
+		sell_list.loc[index] = int(sell)
+		profit_list.loc[index] = int(profit)
 
 def zero_to_nan(values):
 	"""Replace every 0 with 'nan' and return a copy."""
