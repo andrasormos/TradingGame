@@ -40,9 +40,9 @@ std_days_A = 60
 
 # START DATE
 btc_state_size = 1000 # 33000, 63000,      39000 - 41344
-start_date = 45000
-end_date = start_date + btc_state_size
-game_end_date = 63000
+state_start_date_idx = 39000
+game_start_date_idx = state_start_date_idx + btc_state_size
+game_end_date_idx = 45000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -56,10 +56,10 @@ trade_amount = 1000
 how_many_days_past_can_buy = 1
 days_since_buy = how_many_days_past_can_buy * 30 * 96
 
-ma_a = 2 # buy
-ma_b = 200 # buy tresh
-ma_c = 24 # sell
-ma_d = 100 # selltresh
+ma_a_size = 2 # buy
+ma_b_size = 200 # buy tresh
+ma_c_size = 24 # sell
+ma_d_size = 100 # selltresh
 
 std_a_period = std_days_A * 96
 
@@ -96,11 +96,11 @@ past_intersect_pc_cnt = 0
 previous_degree = 0
 previous_degree = 0
 
-state = df_BTC.loc[start_date:end_date]
-state_ma_a = df_BTC.loc[(start_date - ma_a*2 - 1):end_date]
-state_ma_b = df_BTC.loc[(start_date - ma_b*2 - 1):end_date]
-state_ma_c = df_BTC.loc[(start_date - ma_c*2 - 1):end_date]
-state_ma_d = df_BTC.loc[(start_date - ma_d*2 - 1):end_date]
+# state = df_BTC.loc[state_start_date_idx:game_start_date_idx]
+# state_ma_a = df_BTC.loc[(state_start_date_idx - ma_a_size * 2 - 1):game_start_date_idx]
+# state_ma_b = df_BTC.loc[(state_start_date_idx - ma_b_size * 2 - 1):game_start_date_idx]
+# state_ma_c = df_BTC.loc[(state_start_date_idx - ma_c_size * 2 - 1):game_start_date_idx]
+# state_ma_d = df_BTC.loc[(state_start_date_idx - ma_d_size * 2 - 1):game_start_date_idx]
 cnt = 0
 
 def calc_tangent(x, y, point_x):
@@ -111,57 +111,84 @@ def calc_tangent(x, y, point_x):
 	tan = point_y + fprime * (line - point_x)  # tangent
 	return point_x, point_y, line, tan, fprime
 
+df_segment = df_BTC.loc[game_start_date_idx:game_end_date_idx]
 
-for i in range(end_date, game_end_date):
+
+for index, row in df_segment.iterrows():
+	#print(index, row['Unix'], row['Close'])
+
 	cnt += 1
 	days = int(np.round((cnt / 96), 0))
 
-	next_state_row = df_BTC.loc[[i+1]]
-
 	# PRICE
-	state = pd.concat([state, next_state_row])
-	state = state.drop(state.index[0])
-	btc_price_current = state["Close"].iloc[-1]
+	state = df_BTC['Close'].loc[game_start_date_idx:game_end_date_idx]
+	state_ma_a = df_BTC['Close'].loc[game_start_date_idx - ma_a_size * 2 : game_start_date_idx]
+	state_ma_b = df_BTC['Close'].loc[game_start_date_idx - ma_b_size * 2 : game_start_date_idx]
+	state_ma_c = df_BTC['Close'].loc[game_start_date_idx - ma_c_size * 2 : game_start_date_idx]
+	state_ma_d = df_BTC['Close'].loc[game_start_date_idx - ma_d_size * 2 : game_start_date_idx]
+	print(state_ma_b)
+	print("\n")
+
+	state_ma_a = np.round( (talib.DEMA(state_ma_a, timeperiod=ma_a_size)), 6 )#.astype('float32')
+	state_ma_b = np.round( (talib.DEMA(state_ma_b, timeperiod=ma_b_size)), 6 )#.astype('float32')
+	state_ma_c = np.round( (talib.DEMA(state_ma_c, timeperiod=ma_c_size)), 6 )#.astype('float32')
+	state_ma_d = np.round( (talib.DEMA(state_ma_d, timeperiod=ma_d_size)), 6 )#.astype('float32')
+
+	# SMOOTH
+	state_ma_b_smooth = state_ma_b#[ma_b_size*2:]
+
+
+
+	print(state_ma_b_smooth)
+	print("\n")
+	#print("\n")
+	#print(state_ma_b_smooth)
+	break
+
+
+
+
+
+	# after calculating the DEMA, we shouldn't end up with 3 values, only 1 I think
+
+
+
+
+	btc_price_current = row['Close']
+
 	price_list.loc[state.index[-1]] = state.iloc[-1]
 	price_list = price_list.astype('uint16')
 
+
+
 	# MA A
-	state_ma_a = pd.concat([state_ma_a, next_state_row])
-	state_ma_a = state_ma_a.drop(state_ma_a.index[0])
-	state_ma_a_applied = talib.DEMA(state_ma_a["Close"], timeperiod=ma_a)
+	print(row['Close'])
+	state_ma_a_applied = talib.DEMA(row['Close'], timeperiod=ma_a_size)
 	state_ma_a_applied = np.round(state_ma_a_applied, 6)
 	state_ma_a_applied = state_ma_a_applied.astype('float32')
 	ma_a_price_current = state_ma_a_applied.iloc[-1]
 
-
-
 	# MA B
-	state_ma_b = pd.concat([state_ma_b, next_state_row])
-	state_ma_b = state_ma_b.drop(state_ma_b.index[0])
-	state_ma_b_applied = talib.SMA(state_ma_b["Close"], timeperiod=ma_b)
+	state_ma_b_applied = talib.SMA(row['Close'], timeperiod=ma_b_size)
 	state_ma_b_applied = np.round(state_ma_b_applied, 6)
 	state_ma_b_applied = state_ma_b_applied.astype('float32')
 	ma_b_price_current = state_ma_b_applied.iloc[-1]
 
 	# MA C
-	state_ma_c = pd.concat([state_ma_c, next_state_row])
-	state_ma_c = state_ma_c.drop(state_ma_c.index[0])
-	state_ma_c_applied = talib.DEMA(state_ma_c["Close"], timeperiod=ma_c)
+	state_ma_c_applied = talib.DEMA(row['Close'], timeperiod=ma_c_size)
 	state_ma_c_applied = np.round(state_ma_c_applied, 6)
 	state_ma_c_applied = state_ma_c_applied.astype('float32')
 	ma_c_price_current = state_ma_c_applied.iloc[-1]
 
 	# TEST MA
-	state_ma_d = pd.concat([state_ma_d, next_state_row])
-	state_ma_d = state_ma_d.drop(state_ma_d.index[0])
-	state_ma_d_applied = talib.DEMA(state_ma_d["Close"], timeperiod=ma_d)
+	state_ma_d_applied = talib.DEMA(row['Close'], timeperiod=ma_d_size)
 	state_ma_d_applied = np.round(state_ma_d_applied, 6)
 	state_ma_d_applied = state_ma_d_applied.astype('float32')
 	ma_d_price_current = state_ma_d_applied.iloc[-1]
 
 	# GAUSSIAN MA B
-	list_y = np.asarray(state_ma_b_applied[-1004:])
-	list_x = np.asarray(state_ma_b_applied.index[-1004:])
+	list_y = np.asarray(state_ma_b[-1004:])
+	list_x = np.asarray(state_ma_b.index[-1004:])
 	df = pd.DataFrame(list_y)
 	df = df.rolling(window=7, min_periods=0).mean()
 	list_y_gauss = df.values
@@ -170,14 +197,17 @@ for i in range(end_date, game_end_date):
 	list_y_gauss = list_y_gauss.astype('float32')
 
 
-	df_ma_charts.loc[state_ma_a_applied.index[-1]] = state_ma_a_applied.iloc[-1], state_ma_b_applied.iloc[-1], state_ma_c_applied.iloc[-1], state_ma_d_applied.iloc[-1], list_y_gauss[-1]
+
+
+
+	df_ma_charts.loc[state_ma_a.index[-1]] = state_ma_a.iloc[-1], state_ma_b.iloc[-1], state_ma_c.iloc[-1], state_ma_d.iloc[-1], list_y_gauss[-1]
 	df_ma_charts['mA'] = df_ma_charts['mA'].astype('float32')
 	df_ma_charts['mB'] = df_ma_charts['mB'].astype('float32')
 	df_ma_charts['mC'] = df_ma_charts['mC'].astype('float32')
 	df_ma_charts['mD'] = df_ma_charts['mD'].astype('float32')
 	df_ma_charts['smoothB'] = df_ma_charts['smoothB'].astype('float32')
 
-	#print(price_list['Close'].dtypes)
+	#print(price_list.dtypes)
 
 
 	#print(df_ma_charts['mA'])
@@ -201,15 +231,17 @@ for i in range(end_date, game_end_date):
 	sell = 0
 	if len(df_ma_charts["mA"]) > 2:
 		interPrice = np.asarray(price_list)
-		interA = np.asarray(df_ma_charts["mA"].values)
-		interB = np.asarray(df_ma_charts["mB"].values)
-		interC = np.asarray(df_ma_charts["mC"].values)
-		interD = np.asarray(df_ma_charts["mD"].values)
+		interA = np.asarray(df_ma_charts["mA"].iloc[-2:])
+		interB = np.asarray(df_ma_charts["mB"].iloc[-2:])
+		interC = np.asarray(df_ma_charts["mC"].iloc[-2:])
+		interD = np.asarray(df_ma_charts["mD"].iloc[-2:])
+
 		intersect_ab_cnt = len(np.argwhere(np.diff(np.sign(interB - interA))).flatten())
 		intersect_ac_cnt = len(np.argwhere(np.diff(np.sign(interC - interA))).flatten())
 		intersect_cd_cnt = len(np.argwhere(np.diff(np.sign(interC - interD))).flatten())
 		intersect_pc_cnt = len(np.argwhere(np.diff(np.sign(interPrice - interC))).flatten())
 
+		#print(intersect_ab_cnt)
 
 	# --------------------------------- CHECK IF SLOPE IS INCREASING ---------------------------------
 	point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
@@ -227,7 +259,8 @@ for i in range(end_date, game_end_date):
 
 
 	# ------------------------- BUY CURVE IS CROSSED UPWARDS -------------------------
-	if intersect_ab_cnt > past_intersect_ab_cnt:
+	if intersect_ab_cnt > 0:
+		intersect_ab_cnt = 0
 		if ma_a_price_current > ma_b_price_current:
 			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
 
@@ -235,38 +268,33 @@ for i in range(end_date, game_end_date):
 			activate_buy = True
 		else:
 			activate_buy = False
-
-		past_intersect_ab_cnt = intersect_ab_cnt
 	else:
 		activate_buy = False
-		past_intersect_ab_cnt = intersect_ab_cnt
+
 
 	# ------------------------- SELL CURVE IS CROSSED DOWNWARDS -------------------------
-	if intersect_cd_cnt > past_intersect_cd_cnt and btc_balance != 0: #and degree < 0  #and not buy_slope_increasing:
-
+	if intersect_cd_cnt > 0 and btc_balance != 0: #and degree < 0  #and not buy_slope_increasing:
+		intersect_cd_cnt = 0
 		if ma_c_price_current <= ma_d_price_current:
 			activate_sell = True
 
 		if ma_c_price_current > ma_c_price_current:
 			activate_sell = False
-
-		past_intersect_cd_cnt = intersect_cd_cnt
-
 	else:
 		activate_sell = False
-		past_intersect_cd_cnt = intersect_cd_cnt
+
 
 	# ------------------------- NEIGHTER HAPPENED -------------------------
-	if not activate_buy and not activate_sell:
-		fullBalance = fiat_cash_balance + btc_balance * btc_price_current
-		profit = fullBalance - initBalance
-		profit = int(np.round(profit, 0))
+	# if not activate_buy and not activate_sell:
+	# 	fullBalance = fiat_cash_balance + btc_balance * btc_price_current
+	# 	profit = fullBalance - initBalance
+	# 	profit = int(np.round(profit, 0))
 
 
 
 	# ------------------------- BUY -------------------------
 	if activate_buy: # and degree >= 0.1:
-		point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
+		#point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
 		try:
 			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
 		except:
@@ -284,7 +312,7 @@ for i in range(end_date, game_end_date):
 
 	# ------------------------- SELL -------------------------
 	if activate_sell and btc_balance != 0:
-		point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
+		#point_x, point_y, line, tan, degree = calc_tangent(list_x, list_y_gauss, list_x[-1])
 
 		try:
 			tan_list_B.loc[state_ma_b_applied.index[-1]] = point_x, point_y, line, tan, degree
@@ -323,10 +351,10 @@ ax1 = fig.add_subplot(111)
 fig.tight_layout()
 
 ax1.plot(price_list, "-", color='gray', linewidth=1.5)
-ax1.plot(df_ma_charts["mA"], "-", color='#86c16a', linewidth=1.5, label=("buy " + str(ma_a)))
-ax1.plot(df_ma_charts["mB"], "-", color='#183515', linewidth=4, label=("buy tresh " + str(ma_b)))
-ax1.plot(df_ma_charts["mC"], "-", color='#bc6454', linewidth=1.5, label=("sell " + str(ma_c)))
-ax1.plot(df_ma_charts["mD"], "-", color='#511308', linewidth=4, label=("sell tresh " + str(ma_d)))
+ax1.plot(df_ma_charts["mA"], "-", color='#86c16a', linewidth=1.5, label=("buy " + str(ma_a_size)))
+ax1.plot(df_ma_charts["mB"], "-", color='#183515', linewidth=4, label=("buy tresh " + str(ma_b_size)))
+ax1.plot(df_ma_charts["mC"], "-", color='#bc6454', linewidth=1.5, label=("sell " + str(ma_c_size)))
+ax1.plot(df_ma_charts["mD"], "-", color='#511308', linewidth=4, label=("sell tresh " + str(ma_d_size)))
 ax1.plot(buy_list["Close"], "o", color='darkgreen', markersize=10)
 ax1.plot(sell_list["Close"], "o", color='darkred', markersize=10)
 
