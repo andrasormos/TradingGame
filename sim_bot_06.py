@@ -47,9 +47,9 @@ std_days_A = 60
 
 # START DATE
 btc_state_size = 1000 # 33000, 63000,      39000 - 41344
-start_date = 48000
+start_date = 39000
 end_date = start_date + btc_state_size
-game_end_date = 50000
+game_end_date = 41000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000

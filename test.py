@@ -6,7 +6,7 @@ from scipy import interpolate
 from numpy import arange
 
 
-cnt = 2000
+cnt = 8192
 cnt = cnt / 96
 
 
