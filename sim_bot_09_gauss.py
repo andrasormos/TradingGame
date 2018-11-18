@@ -38,7 +38,7 @@ std_days_A = 60
 btc_state_size = 1000 # 33000, 63000,      39000 - 41344
 state_start_date_idx = 40000
 game_start_date_idx = state_start_date_idx + btc_state_size
-game_end_date_idx = 41200
+game_end_date_idx = 42000
 
 # WALLET FINANCES
 fiat_cash_balance = 10000
@@ -56,8 +56,8 @@ def func(x, adj1,adj2):
 	return (((x+adj1) ** pw) * adj2).astype(int)
 
 x = [0, 16] # two given datapoints to which the exponential function with power pw should fit
-y = [2,8000]
-pw = 16
+y = [2,4000]
+pw = 2
 A = np.exp(np.log(y[0]/y[1])/pw)
 a = (x[0] - x[1]*A)/(A-1)
 b = y[0]/(x[0]+a)**pw
@@ -466,7 +466,7 @@ ax1.plot(df_ma_charts["mD"], "-", color='#ffeb40', linewidth=1, label=("MA" + st
 ax1.plot(df_ma_charts["mE"], "-", color='#85ff40', linewidth=1, label=("MA" + str(ma_e_size)))
 ax1.plot(df_ma_charts["mF"], "-", color='#40ff83', linewidth=1, label=("MA" + str(ma_f_size)))
 
-ax1.plot(df_ma_charts["mG"], "-", color='#40ffd1', linewidth=1, label=("MA" + str(ma_g_size)))
+# ax1.plot(df_ma_charts["mG"], "-", color='#40ffd1', linewidth=1, label=("MA" + str(ma_g_size)))
 # ax1.plot(df_ma_charts["mH"], "-", color='#40ceff', linewidth=1, label=("MA" + str(ma_h_size)))
 # ax1.plot(df_ma_charts["mI"], "-", color='#408bff', linewidth=1, label=("MA" + str(ma_i_size)))
 # ax1.plot(df_ma_charts["mJ"], "-", color='#4043ff', linewidth=1, label=("MA" + str(ma_j_size)))
@@ -477,49 +477,62 @@ ax1.plot(df_ma_charts["mG"], "-", color='#40ffd1', linewidth=1, label=("MA" + st
 # ax1.plot(df_ma_charts["mO"], "-", color='#ff408e', linewidth=1, label=("MA" + str(ma_o_size)))
 # ax1.plot(df_ma_charts["mP"], "-", color='#ff4069', linewidth=1, label=("MA" + str(ma_p_size)))
 
-ax1.plot(buy_list["Close"], "o", color='darkgreen', markersize=10)
-ax1.plot(sell_list["Close"], "o", color='darkred', markersize=10)
+# ax1.plot(buy_list["Close"], "o", color='darkgreen', markersize=5)
+# ax1.plot(sell_list["Close"], "o", color='darkred', markersize=5)
+
+
 
 #ax1.plot(df_ma_charts["smoothB"].index, df_ma_charts["smoothB"], "-", color='orange', linewidth=4, label=("buy smooth"), alpha=0.5)
 
-for i in tan_list_A.index:
-	if tan_list_A["degree"][i] >= 0:
-		ax1.plot(tan_list_A["line"][i], tan_list_A["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_A["line"][i], tan_list_A["tan"][i], "--r", color='red', linewidth=3)
-
-for i in tan_list_B.index:
-	if tan_list_B["degree"][i] >= 0:
-		ax1.plot(tan_list_B["line"][i], tan_list_B["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_B["line"][i], tan_list_B["tan"][i], "--r", color='red', linewidth=3)
-
-for i in tan_list_C.index:
-	if tan_list_C["degree"][i] >= 0:
-		ax1.plot(tan_list_C["line"][i], tan_list_C["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_C["line"][i], tan_list_C["tan"][i], "--r", color='red', linewidth=3)
-
-for i in tan_list_D.index:
-	if tan_list_D["degree"][i] >= 0:
-		ax1.plot(tan_list_D["line"][i], tan_list_D["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_D["line"][i], tan_list_D["tan"][i], "--r", color='red', linewidth=3)
-
-for i in tan_list_E.index:
-	if tan_list_E["degree"][i] >= 0:
-		ax1.plot(tan_list_E["line"][i], tan_list_E["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_E["line"][i], tan_list_E["tan"][i], "--r", color='red', linewidth=3)
-
-for i in tan_list_F.index:
-	if tan_list_F["degree"][i] >= 0:
-		ax1.plot(tan_list_F["line"][i], tan_list_F["tan"][i], "--r", color='green', linewidth=3)
-	else:
-		ax1.plot(tan_list_F["line"][i], tan_list_F["tan"][i], "--r", color='red', linewidth=3)
 
 
-ax1.plot(tan_list_B["x"], tan_list_B["y"], "o", color='white', markersize=5)
+# for i in tan_list_A.index:
+# 	if tan_list_A["degree"][i] >= 0:
+# 		ax1.plot(tan_list_A["line"][i], tan_list_A["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_A["line"][i], tan_list_A["tan"][i], "--r", color='red', linewidth=3)
+#
+# for i in tan_list_B.index:
+# 	if tan_list_B["degree"][i] >= 0:
+# 		ax1.plot(tan_list_B["line"][i], tan_list_B["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_B["line"][i], tan_list_B["tan"][i], "--r", color='red', linewidth=3)
+#
+# for i in tan_list_C.index:
+# 	if tan_list_C["degree"][i] >= 0:
+# 		ax1.plot(tan_list_C["line"][i], tan_list_C["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_C["line"][i], tan_list_C["tan"][i], "--r", color='red', linewidth=3)
+#
+# for i in tan_list_D.index:
+# 	if tan_list_D["degree"][i] >= 0:
+# 		ax1.plot(tan_list_D["line"][i], tan_list_D["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_D["line"][i], tan_list_D["tan"][i], "--r", color='red', linewidth=3)
+#
+# for i in tan_list_E.index:
+# 	if tan_list_E["degree"][i] >= 0:
+# 		ax1.plot(tan_list_E["line"][i], tan_list_E["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_E["line"][i], tan_list_E["tan"][i], "--r", color='red', linewidth=3)
+#
+# for i in tan_list_F.index:
+# 	if tan_list_F["degree"][i] >= 0:
+# 		ax1.plot(tan_list_F["line"][i], tan_list_F["tan"][i], "--r", color='green', linewidth=3)
+# 	else:
+# 		ax1.plot(tan_list_F["line"][i], tan_list_F["tan"][i], "--r", color='red', linewidth=3)
+#
+# ax1.plot(tan_list_A["x"], tan_list_A["y"], "o", color='white', markersize=1)
+# ax1.plot(tan_list_B["x"], tan_list_B["y"], "o", color='white', markersize=1)
+# ax1.plot(tan_list_C["x"], tan_list_C["y"], "o", color='white', markersize=1)
+# ax1.plot(tan_list_D["x"], tan_list_D["y"], "o", color='white', markersize=1)
+# ax1.plot(tan_list_E["x"], tan_list_E["y"], "o", color='white', markersize=1)
+# ax1.plot(tan_list_F["x"], tan_list_F["y"], "o", color='white', markersize=1)
+
+
+
+
+
 
 for i in profit_list["Close"].index:
 	text = profit_list["Close"][i]
