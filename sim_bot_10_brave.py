@@ -47,6 +47,7 @@ std_days_A = 60
 
 # S1 20000 - 37000 made 815
 
+
 # START DATE
 btc_state_size = 1000 # 33000, 63000,      39000 - 41344
 state_start_date_idx = 20000
